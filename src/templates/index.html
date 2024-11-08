@@ -5,11 +5,7 @@
     {{> navbar }}
     <main>
         <h1>Blog Posts</h1>
-        <ul>
-            {{#each posts}}
-                <li><a href="{{url}}">{{title}}</a></li>
-            {{/each}}
-        </ul>
+    {{> list }}
     </main>
     {{> footer }}
 </body>
