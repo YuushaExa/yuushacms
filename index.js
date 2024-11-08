@@ -40,13 +40,16 @@ async function generateIndex(posts) {
     const indexTemplate = await readTemplate(indexTemplatePath);
     const listTemplate = await readTemplate('src/templates/list.html'); // Read the list template
 
-    // Create the list HTML by generating the list items
+    // Create the list HTML by replacing the placeholders in the list template
+    let populatedListTemplate = listTemplate;
+
+    // Replace the {{#each posts}} and {{/each}} in the list template
     const listItems = posts.map(post => {
         return `<li><a href="${post.url}">${post.title}</a></li>`;
     }).join('');
 
-    // Replace the {{#each posts}} and {{/each}} in the list template
-    const populatedListTemplate = listTemplate
+    // Replace the entire list with the generated list items
+    populatedListTemplate = populatedListTemplate
         .replace('{{#each posts}}', '') // Remove the opening tag
         .replace('{{/each}}', listItems); // Replace the closing tag with the list items
 
@@ -59,8 +62,6 @@ async function generateIndex(posts) {
 
     return indexHTML;
 }
-
-
 
 
 // Function to process all posts
