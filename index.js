@@ -31,6 +31,26 @@ async function generateSingleHTML(postFile, title, content) {
         .replace('{{> footer }}', footer)
         .replace('{{> navbar }}', navbar);
 }
+// Function to generate the list page
+async function generateList(posts) {
+    const head = await readTemplate(headTemplatePath);
+    const footer = await readTemplate(footerTemplatePath);
+    const navbar = await readTemplate(navbarTemplatePath);
+    const listTemplate = await readTemplate('src/templates/list.html');
+
+    // Replace placeholders in the list template
+    const listHTML = listTemplate
+        .replace('{{> head }}', head)
+        .replace('{{> footer }}', footer)
+        .replace('{{> navbar }}', navbar)
+        .replace('{{title}}', 'Post List') // You can customize the title here
+        .replace('{{#each posts}}', '')
+        .replace('{{/each}}', posts.map(post => {
+            return `{{title: "${post.title}", url: "${post.url}"}}`;
+        }).join(''));
+
+    return listHTML;
+}
 
 // Function to generate the index page
 async function generateIndex(posts) {
@@ -52,6 +72,7 @@ async function generateIndex(posts) {
     return indexHTML;
 }
 
+// Function to process all posts
 // Function to process all posts
 async function processPosts() {
     const files = await fs.readdir(postsDir);
@@ -84,6 +105,12 @@ async function processPosts() {
     const indexOutputFile = `${outputDir}/index.html`; // Constructing path manually
     await fs.writeFile(indexOutputFile, indexHTML);
     console.log(`Generated: ${indexOutputFile}`);
+
+    // Generate the list page after processing all posts
+    const listHTML = await generateList(posts);
+    const listOutputFile = `${outputDir}/list.html`; // Constructing path manually
+    await fs.writeFile(listOutputFile, listHTML);
+    console.log(`Generated: ${listOutputFile}`);
 }
 
 // Run the SSG
