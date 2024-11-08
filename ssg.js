@@ -89,12 +89,14 @@ async function generateIndex(posts) {
 
 // Function to process all posts and generate HTML files
 async function processContent() {
+    console.time('Build Time'); // Start timer
     const files = await fs.readdir(contentDir);
     const markdownFiles = files.filter(file => file.endsWith('.md'));
 
     await fs.ensureDir(outputDir); // Ensure output directory exists
 
     const posts = [];
+    let processedCount = 0; // Initialize counter for created content
 
     for (const file of markdownFiles) {
         const postFile = `${contentDir}/${file}`;
@@ -112,20 +114,37 @@ async function processContent() {
         console.log(`Generated: ${outputFile}`);
 
         posts.push({ title, url: postURL });
+        processedCount++; // Increment counter for each processed file
     }
 
     const indexHTML = await generateIndex(posts);
     const indexOutputFile = `${outputDir}/index.html`;
     await fs.writeFile(indexOutputFile, indexHTML);
     console.log(`Generated: ${indexOutputFile}`);
+
+    console.timeEnd('Build Time'); // End timer
+    return processedCount; // Return the count of processed files
 }
+
 
 // Main function to run the SSG
 async function runSSG() {
     try {
         await preloadTemplates();
         await preloadPartials();
-        await processContent();
+
+        console.log('--- Starting Static Site Generation ---');
+        const startTime = Date.now(); // Start timestamp
+
+        const contentCount = await processContent(); // Get processed content count
+
+        const endTime = Date.now(); // End timestamp
+        const buildDuration = endTime - startTime; // Calculate build duration in milliseconds
+
+        console.log('--- Build Statistics ---');
+        console.log(`Total Content Processed: ${contentCount} files`);
+        console.log(`Total Build Time: ${buildDuration} ms`);
+
     } catch (err) {
         console.error('Error:', err);
     }
