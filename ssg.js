@@ -68,7 +68,7 @@ function renderTemplate(template, context = {}) {
 function renderWithBase(templateContent, context = {}) {
     const baseTemplate = templates['base'];
     const currentYear = new Date().getFullYear(); 
-    return renderTemplate(baseTemplate, { ...context, content: templateContent });
+    return renderTemplate(baseTemplate, { ...context, content: templateContent,currentYear });
 }
 
 // Function to generate HTML for a single post
