@@ -2,10 +2,10 @@ const fs = require('fs-extra');
 const marked = require('marked');
 const matter = require('gray-matter');
 
-const postsDir = 'src/posts';
-const templatesDir = 'src/templates';
-const partialsDir = 'src/partials';
-const outputDir = 'output';
+const contentDir = 'content';
+const layoutsDir = 'layouts';
+const partialsDir = 'partials';
+const outputDir = 'public';
 
 const templates = {}; // Store preloaded templates
 const partials = {};  // Store preloaded partials
@@ -17,18 +17,16 @@ async function readTemplate(templatePath) {
 
 // Function to preload all templates
 async function preloadTemplates() {
-    // Read all files in the templates directory
-    const templateFiles = await fs.readdir(templatesDir);
+    const templateFiles = await fs.readdir(layoutsDir);
     for (const file of templateFiles) {
         const templateName = file.replace('.html', '');
-        templates[templateName] = await readTemplate(`${templatesDir}/${file}`);
+        templates[templateName] = await readTemplate(`${layoutsDir}/${file}`);
     }
     console.log('Templates preloaded:', Object.keys(templates));
 }
 
 // Function to preload all partials
 async function preloadPartials() {
-    // Read all files in the partials directory
     const partialFiles = await fs.readdir(partialsDir);
     for (const file of partialFiles) {
         const partialName = file.replace('.html', '');
@@ -66,10 +64,17 @@ function renderTemplate(template, context = {}) {
     return template;
 }
 
+// Function to wrap content in base template
+function renderWithBase(templateContent, context = {}) {
+    const baseTemplate = templates['base'];
+    return renderTemplate(baseTemplate, { ...context, content: templateContent });
+}
+
 // Function to generate HTML for a single post
 async function generateSingleHTML(title, content) {
     const singleTemplate = templates['single'];
-    return renderTemplate(singleTemplate, { title, content });
+    const renderedContent = renderTemplate(singleTemplate, { title, content });
+    return renderWithBase(renderedContent, { title });
 }
 
 // Function to generate the index page
@@ -77,21 +82,21 @@ async function generateIndex(posts) {
     const listTemplate = templates['list'];
     const indexTemplate = templates['index'];
     const listHTML = renderTemplate(listTemplate, { posts });
-    return renderTemplate(indexTemplate, { list: listHTML });
+    const renderedContent = renderTemplate(indexTemplate, { list: listHTML });
+    return renderWithBase(renderedContent, { title: 'Home' });
 }
 
 // Function to process all posts and generate HTML files
-async function processPosts() {
-    const files = await fs.readdir(postsDir);
+async function processContent() {
+    const files = await fs.readdir(contentDir);
     const markdownFiles = files.filter(file => file.endsWith('.md'));
 
     await fs.ensureDir(outputDir); // Ensure output directory exists
 
     const posts = [];
 
-    // Process each Markdown file
     for (const file of markdownFiles) {
-        const postFile = `${postsDir}/${file}`;
+        const postFile = `${contentDir}/${file}`;
         const fileContent = await fs.readFile(postFile, 'utf-8');
         const { data, content } = matter(fileContent);
         const title = data.title || file.replace('.md', '');
@@ -99,19 +104,15 @@ async function processPosts() {
         const postURL = `${slug}.html`;
         const htmlContent = marked(content);
 
-        // Generate HTML using preloaded templates
         const html = await generateSingleHTML(title, htmlContent);
 
-        // Save the individual post HTML file
         const outputFile = `${outputDir}/${postURL}`;
         await fs.writeFile(outputFile, html);
         console.log(`Generated: ${outputFile}`);
 
-        // Add post information to the posts array for the index
         posts.push({ title, url: postURL });
     }
 
-    // Generate the index page
     const indexHTML = await generateIndex(posts);
     const indexOutputFile = `${outputDir}/index.html`;
     await fs.writeFile(indexOutputFile, indexHTML);
@@ -121,9 +122,9 @@ async function processPosts() {
 // Main function to run the SSG
 async function runSSG() {
     try {
-        await preloadTemplates(); // Preload all templates
-        await preloadPartials();  // Preload all partials
-        await processPosts();     // Process posts and generate HTML
+        await preloadTemplates();
+        await preloadPartials();
+        await processContent();
     } catch (err) {
         console.error('Error:', err);
     }
