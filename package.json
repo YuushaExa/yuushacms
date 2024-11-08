@@ -1,0 +1,22 @@
+{
+  "name": "my-static-site-generator",
+  "version": "1.0.0",
+  "description": "A simple static site generator for Markdown posts",
+  "main": "index.js",
+  "scripts": {
+    "build": "node index.js"
+  },
+  "keywords": [
+    "static",
+    "site",
+    "generator",
+    "markdown"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^10.0.0",
+    "marked": "^3.0.0",
+    "gray-matter": "^4.0.0"
+  }
+}
