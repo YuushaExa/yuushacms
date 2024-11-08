@@ -40,7 +40,7 @@ async function generateIndex(posts) {
     const indexTemplate = await readTemplate(indexTemplatePath);
     const listTemplate = await readTemplate('src/templates/list.html'); // Read the list template
 
-    // Create the list HTML by replacing the placeholders in the list template
+    // Create the list HTML by generating the list items
     const listItems = posts.map(post => {
         return `<li><a href="${post.url}">${post.title}</a></li>`;
     }).join('');
@@ -59,6 +59,7 @@ async function generateIndex(posts) {
 
     return indexHTML;
 }
+
 
 
 
