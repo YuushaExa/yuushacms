@@ -67,6 +67,7 @@ function renderTemplate(template, context = {}) {
 // Function to wrap content in base template
 function renderWithBase(templateContent, context = {}) {
     const baseTemplate = templates['base'];
+    const currentYear = new Date().getFullYear(); 
     return renderTemplate(baseTemplate, { ...context, content: templateContent });
 }
 
