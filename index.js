@@ -3,23 +3,45 @@ const marked = require('marked');
 const matter = require('gray-matter');
 
 const postsDir = 'src/posts';
-const baseTemplatePath = 'src/templates/base.html';
-const headTemplatePath = 'src/templates/head.html';
-const footerTemplatePath = 'src/templates/footer.html';
-const navbarTemplatePath = 'src/partials/navbar.html';
-const indexTemplatePath = 'src/templates/index.html';
-const singleTemplatePath = 'src/templates/single.html';
-const listTemplatePath = 'src/templates/list.html';
+const templatesDir = 'src/templates';
+const partialsDir = 'src/partials';
 const outputDir = 'output';
 
-// Function to read a template
+const templates = {}; // Store preloaded templates
+const partials = {};  // Store preloaded partials
+
+// Function to read a template file
 async function readTemplate(templatePath) {
     return fs.readFile(templatePath, 'utf-8');
 }
 
+// Function to preload all templates
+async function preloadTemplates() {
+    // Read all files in the templates directory
+    const templateFiles = await fs.readdir(templatesDir);
+    for (const file of templateFiles) {
+        const templateName = file.replace('.html', '');
+        templates[templateName] = await readTemplate(`${templatesDir}/${file}`);
+    }
+    console.log('Templates preloaded:', Object.keys(templates));
+}
+
+// Function to preload all partials
+async function preloadPartials() {
+    // Read all files in the partials directory
+    const partialFiles = await fs.readdir(partialsDir);
+    for (const file of partialFiles) {
+        const partialName = file.replace('.html', '');
+        partials[partialName] = await readTemplate(`${partialsDir}/${file}`);
+    }
+    console.log('Partials preloaded:', Object.keys(partials));
+}
+
 // Function to render a template with context and partials
-async function renderTemplate(template, context = {}, partials = {}) {
-    // Helper function to include partial templates
+function renderTemplate(template, context = {}) {
+    if (!template) return '';
+
+    // Include partials
     template = template.replace(/{{>\s*([\w]+)\s*}}/g, (_, partialName) => {
         return partials[partialName] || '';
     });
@@ -28,7 +50,7 @@ async function renderTemplate(template, context = {}, partials = {}) {
     template = template.replace(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g, (_, collection, innerTemplate) => {
         const items = context[collection];
         if (!Array.isArray(items)) return '';
-        return items.map(item => renderTemplate(innerTemplate, { ...context, ...item }, partials)).join('');
+        return items.map(item => renderTemplate(innerTemplate, { ...context, ...item })).join('');
     });
 
     // Handle conditionals: {{#if condition}}...{{/if}}
@@ -45,37 +67,17 @@ async function renderTemplate(template, context = {}, partials = {}) {
 }
 
 // Function to generate HTML for a single post
-async function generateSingleHTML(postFile, title, content) {
-    const head = await readTemplate(headTemplatePath);
-    const footer = await readTemplate(footerTemplatePath);
-    const navbar = await readTemplate(navbarTemplatePath);
-    const singleTemplate = await readTemplate(singleTemplatePath);
-
-    // Render the single post template with context and partials
-    return renderTemplate(singleTemplate, { title, content }, {
-        head,
-        footer,
-        navbar
-    });
+async function generateSingleHTML(title, content) {
+    const singleTemplate = templates['single'];
+    return renderTemplate(singleTemplate, { title, content });
 }
 
 // Function to generate the index page
 async function generateIndex(posts) {
-    const head = await readTemplate(headTemplatePath);
-    const footer = await readTemplate(footerTemplatePath);
-    const navbar = await readTemplate(navbarTemplatePath);
-    const indexTemplate = await readTemplate(indexTemplatePath);
-    const listTemplate = await readTemplate(listTemplatePath);
-
-    // Render the list template with posts context
-    const listHTML = await renderTemplate(listTemplate, { posts });
-
-    // Render the index template with context and partials
-    return renderTemplate(indexTemplate, { list: listHTML }, {
-        head,
-        footer,
-        navbar
-    });
+    const listTemplate = templates['list'];
+    const indexTemplate = templates['index'];
+    const listHTML = renderTemplate(listTemplate, { posts });
+    return renderTemplate(indexTemplate, { list: listHTML });
 }
 
 // Function to process all posts and generate HTML files
@@ -87,6 +89,7 @@ async function processPosts() {
 
     const posts = [];
 
+    // Process each Markdown file
     for (const file of markdownFiles) {
         const postFile = `${postsDir}/${file}`;
         const fileContent = await fs.readFile(postFile, 'utf-8');
@@ -94,7 +97,10 @@ async function processPosts() {
         const title = data.title || file.replace('.md', '');
         const slug = data.slug || title.replace(/\s+/g, '-').toLowerCase();
         const postURL = `${slug}.html`;
-        const html = await generateSingleHTML(postFile, title, marked(content));
+        const htmlContent = marked(content);
+
+        // Generate HTML using preloaded templates
+        const html = await generateSingleHTML(title, htmlContent);
 
         // Save the individual post HTML file
         const outputFile = `${outputDir}/${postURL}`;
@@ -105,12 +111,22 @@ async function processPosts() {
         posts.push({ title, url: postURL });
     }
 
-    // Generate the index page after processing all posts
+    // Generate the index page
     const indexHTML = await generateIndex(posts);
     const indexOutputFile = `${outputDir}/index.html`;
     await fs.writeFile(indexOutputFile, indexHTML);
     console.log(`Generated: ${indexOutputFile}`);
 }
 
-// Run the SSG
-processPosts().catch(err => console.error(err));
+// Main function to run the SSG
+async function runSSG() {
+    try {
+        await preloadTemplates(); // Preload all templates
+        await preloadPartials();  // Preload all partials
+        await processPosts();     // Process posts and generate HTML
+    } catch (err) {
+        console.error('Error:', err);
+    }
+}
+
+runSSG();
