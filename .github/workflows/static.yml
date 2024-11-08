@@ -31,15 +31,15 @@ jobs:
           node-version: '20'  # Specify the Node.js version
 
       - name: Install dependencies
-        run: npm install
-        
+        run: npm install  # Install dependencies before running the script
+
       - name: Run index script
         run: node index.js  # Your script to generate posts
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./public  # Path to the directory containing your generated files
+          path: ./output  # Path to the directory containing your generated files
           
   deploy:
     environment:
