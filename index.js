@@ -33,24 +33,28 @@ async function generateSingleHTML(postFile, title, content) {
 }
 
 // Function to generate the index page
+// Function to generate the index page
 async function generateIndex(posts) {
     const head = await readTemplate(headTemplatePath);
     const footer = await readTemplate(footerTemplatePath);
     const navbar = await readTemplate(navbarTemplatePath);
     const indexTemplate = await readTemplate(indexTemplatePath);
-    const listTemplate = await readTemplate('src/templates/list.html'); // Read the list template
+
+    // Create the list HTML manually
+    const listItems = posts.map(post => {
+        return `<li><a href="${post.url}">${post.title}</a></li>`;
+    }).join('');
 
     // Replace placeholders in the index template
     const indexHTML = indexTemplate
         .replace('{{> head }}', head)
         .replace('{{> footer }}', footer)
         .replace('{{> navbar }}', navbar)
-        .replace('{{list}}', listTemplate.replace('{{#each posts}}', '').replace('{{/each}}', posts.map(post => {
-            return `<li><a href="${post.url}">${post.title}</a></li>`;
-        }).join(''))); // Replace the list placeholder with the generated list
+        .replace('{{> list }}', `<ul>${listItems}</ul>`); // Insert the list directly
 
     return indexHTML;
 }
+
 
 // Function to process all posts
 async function processPosts() {
