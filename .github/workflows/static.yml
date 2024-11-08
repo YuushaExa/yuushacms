@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: npm install  # Install dependencies before running the script
 
-      - name: Run index script
+      - name: Run ssg script
         run: node ssg.js  # Your script to generate posts
         
       - name: Upload artifact
