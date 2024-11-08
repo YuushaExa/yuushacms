@@ -34,12 +34,12 @@ jobs:
         run: npm install  # Install dependencies before running the script
 
       - name: Run index script
-        run: node index.js  # Your script to generate posts
+        run: node ssg.js  # Your script to generate posts
         
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./output  # Path to the directory containing your generated files
+          path: ./public  # Path to the directory containing your generated files
           
   deploy:
     environment:
