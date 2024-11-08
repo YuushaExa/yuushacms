@@ -9,6 +9,7 @@ const footerTemplatePath = 'src/templates/footer.html';
 const navbarTemplatePath = 'src/partials/navbar.html';
 const indexTemplatePath = 'src/templates/index.html';
 const singleTemplatePath = 'src/templates/single.html';
+const listTemplatePath = 'src/templates/list.html';
 const outputDir = 'output';
 
 // Function to read a template
@@ -16,20 +17,46 @@ async function readTemplate(templatePath) {
     return fs.readFile(templatePath, 'utf-8');
 }
 
-// Function to generate HTML from Markdown
+// Function to render a template with context and partials
+async function renderTemplate(template, context = {}, partials = {}) {
+    // Helper function to include partial templates
+    template = template.replace(/{{>\s*([\w]+)\s*}}/g, (_, partialName) => {
+        return partials[partialName] || '';
+    });
+
+    // Handle loops: {{#each items}}...{{/each}}
+    template = template.replace(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g, (_, collection, innerTemplate) => {
+        const items = context[collection];
+        if (!Array.isArray(items)) return '';
+        return items.map(item => renderTemplate(innerTemplate, { ...context, ...item }, partials)).join('');
+    });
+
+    // Handle conditionals: {{#if condition}}...{{/if}}
+    template = template.replace(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g, (_, condition, innerTemplate) => {
+        return context[condition] ? innerTemplate : '';
+    });
+
+    // Handle variables: {{ variable }}
+    template = template.replace(/{{\s*([\w]+)\s*}}/g, (_, key) => {
+        return context[key] || '';
+    });
+
+    return template;
+}
+
+// Function to generate HTML for a single post
 async function generateSingleHTML(postFile, title, content) {
     const head = await readTemplate(headTemplatePath);
     const footer = await readTemplate(footerTemplatePath);
     const navbar = await readTemplate(navbarTemplatePath);
     const singleTemplate = await readTemplate(singleTemplatePath);
 
-    // Replace placeholders in the single post template
-    return singleTemplate
-        .replace('{{title}}', title)
-        .replace('{{content}}', content)
-        .replace('{{> head }}', head)
-        .replace('{{> footer }}', footer)
-        .replace('{{> navbar }}', navbar);
+    // Render the single post template with context and partials
+    return renderTemplate(singleTemplate, { title, content }, {
+        head,
+        footer,
+        navbar
+    });
 }
 
 // Function to generate the index page
@@ -38,33 +65,20 @@ async function generateIndex(posts) {
     const footer = await readTemplate(footerTemplatePath);
     const navbar = await readTemplate(navbarTemplatePath);
     const indexTemplate = await readTemplate(indexTemplatePath);
-    const listTemplate = await readTemplate('src/templates/list.html'); // Read the list template
+    const listTemplate = await readTemplate(listTemplatePath);
 
-    // Create the list HTML by replacing the placeholders in the list template
-    let populatedListTemplate = listTemplate;
+    // Render the list template with posts context
+    const listHTML = await renderTemplate(listTemplate, { posts });
 
-    // Replace the {{#each posts}} and {{/each}} in the list template
-    const listItems = posts.map(post => {
-        return `<li><a href="${post.url}">${post.title}</a></li>`;
-    }).join('');
-
-    // Replace the entire list with the generated list items
-    populatedListTemplate = populatedListTemplate
-        .replace('{{#each posts}}', '') // Remove the opening tag
-        .replace('{{/each}}', listItems); // Replace the closing tag with the list items
-
-    // Replace placeholders in the index template
-    const indexHTML = indexTemplate
-        .replace('{{> head }}', head)
-        .replace('{{> footer }}', footer)
-        .replace('{{> navbar }}', navbar)
-        .replace('{{> list }}', populatedListTemplate); // Insert the populated list
-
-    return indexHTML;
+    // Render the index template with context and partials
+    return renderTemplate(indexTemplate, { list: listHTML }, {
+        head,
+        footer,
+        navbar
+    });
 }
 
-
-// Function to process all posts
+// Function to process all posts and generate HTML files
 async function processPosts() {
     const files = await fs.readdir(postsDir);
     const markdownFiles = files.filter(file => file.endsWith('.md'));
@@ -74,16 +88,16 @@ async function processPosts() {
     const posts = [];
 
     for (const file of markdownFiles) {
-        const postFile = `${postsDir}/${file}`; // Constructing path manually
+        const postFile = `${postsDir}/${file}`;
         const fileContent = await fs.readFile(postFile, 'utf-8');
-        const { data, content } = matter(fileContent); // Parse front matter and content
-        const title = data.title || file.replace('.md', ''); // Use title from front matter or fallback to filename
-        const slug = data.slug || title.replace(/\s+/g, '-').toLowerCase(); // Use slug from front matter or generate one
-        const postURL = `${slug}.html`; // URL for the post
+        const { data, content } = matter(fileContent);
+        const title = data.title || file.replace('.md', '');
+        const slug = data.slug || title.replace(/\s+/g, '-').toLowerCase();
+        const postURL = `${slug}.html`;
         const html = await generateSingleHTML(postFile, title, marked(content));
-       
+
         // Save the individual post HTML file
-        const outputFile = `${outputDir}/${postURL}`; // Constructing path manually
+        const outputFile = `${outputDir}/${postURL}`;
         await fs.writeFile(outputFile, html);
         console.log(`Generated: ${outputFile}`);
 
@@ -93,7 +107,7 @@ async function processPosts() {
 
     // Generate the index page after processing all posts
     const indexHTML = await generateIndex(posts);
-    const indexOutputFile = `${outputDir}/index.html`; // Constructing path manually
+    const indexOutputFile = `${outputDir}/index.html`;
     await fs.writeFile(indexOutputFile, indexHTML);
     console.log(`Generated: ${indexOutputFile}`);
 }
