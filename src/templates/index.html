@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+{{> head }}
+<body>
+    {{> navbar }}
+    <main>
+        <h1>Blog Posts</h1>
+        <ul>
+            {{#each posts}}
+                <li><a href="{{url}}">{{title}}</a></li>
+            {{/each}}
+        </ul>
+    </main>
+    {{> footer }}
+</body>
+</html>
