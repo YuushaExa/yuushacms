@@ -1,153 +1,150 @@
 const fs = require('fs-extra');
 const marked = require('marked');
 const matter = require('gray-matter');
+const { createReadStream, createWriteStream } = require('fs');
+const { pipeline } = require('stream');
+const { promisify } = require('util');
+
+const pipelineAsync = promisify(pipeline);
 
 const contentDir = 'content';
 const layoutsDir = 'layouts';
 const partialsDir = 'partials';
 const outputDir = 'public';
 
-const templates = {}; // Store preloaded templates
-const partials = {};  // Store preloaded partials
-
-// Function to read a template file
-async function readTemplate(templatePath) {
-    return fs.readFile(templatePath, 'utf-8');
-}
-
-// Function to preload all templates
-async function preloadTemplates() {
-    const templateFiles = await fs.readdir(layoutsDir);
-    for (const file of templateFiles) {
-        const templateName = file.replace('.html', '');
-        templates[templateName] = await readTemplate(`${layoutsDir}/${file}`);
+// Function to read a file from a directory
+async function readFile(dir, name) {
+    const filePath = `${dir}/${name}.html`;
+    if (await fs.pathExists(filePath)) {
+        return await fs.readFile(filePath, 'utf-8');
     }
-    console.log('Templates preloaded:', Object.keys(templates));
-}
-
-// Function to preload all partials
-async function preloadPartials() {
-    const partialFiles = await fs.readdir(partialsDir);
-    for (const file of partialFiles) {
-        const partialName = file.replace('.html', '');
-        partials[partialName] = await readTemplate(`${partialsDir}/${file}`);
-    }
-    console.log('Partials preloaded:', Object.keys(partials));
+    return '';
 }
 
 // Function to render a template with context and partials
-function renderTemplate(template, context = {}) {
+async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    // Include partials
-    template = template.replace(/{{>\s*([\w]+)\s*}}/g, (_, partialName) => {
-        return partials[partialName] || '';
+    // Create a map for partials
+    const partialsMap = new Map();
+    const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
+    for (const match of partialMatches) {
+        const [fullMatch, partialName] = match;
+        if (!partialsMap.has(partialName)) {
+            const partialContent = await readFile(partialsDir, partialName);
+            partialsMap.set(partialName, partialContent || '');
+        }
+        template = template.replace(fullMatch, partialsMap.get(partialName));
+    }
+
+    // Replace loops, conditionals, and variables in a single pass
+    const regex = /{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}|{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}|{{\s*([\w]+)\s*}}/g;
+
+    const result = template.replace(regex, (match, eachCollection, innerTemplate, ifCondition, ifInnerTemplate, variable) => {
+        if (eachCollection) {
+            const items = context[eachCollection];
+            if (Array.isArray(items)) {
+                return items.map(item => renderTemplate(innerTemplate, { ...context, ...item })).join('');
+            }
+            return '';
+        } else if (ifCondition) {
+            return context[ifCondition] ? ifInnerTemplate : '';
+        } else if (variable) {
+            return context[variable] || '';
+        }
+        return match; // Fallback
     });
 
-    // Handle loops: {{#each items}}...{{/each}}
-    template = template.replace(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g, (_, collection, innerTemplate) => {
-        const items = context[collection];
-        if (!Array.isArray(items)) return '';
-        return items.map(item => renderTemplate(innerTemplate, { ...context, ...item })).join('');
-    });
-
-    // Handle conditionals: {{#if condition}}...{{/if}}
-    template = template.replace(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g, (_, condition, innerTemplate) => {
-        return context[condition] ? innerTemplate : '';
-    });
-
-    // Handle variables: {{ variable }}
-    template = template.replace(/{{\s*([\w]+)\s*}}/g, (_, key) => {
-        return context[key] || '';
-    });
-
-    return template;
+    return result;
 }
 
 // Function to wrap content in base template
-function renderWithBase(templateContent, context = {}) {
-    const baseTemplate = templates['base'];
-    const currentYear = new Date().getFullYear(); 
-    return renderTemplate(baseTemplate, { ...context, content: templateContent,currentYear });
+async function renderWithBase(templateContent, context = {}) {
+    const baseTemplate = await readFile(layoutsDir, 'base');
+    const currentYear = new Date().getFullYear();
+    return await renderTemplate(baseTemplate, { ...context, content: templateContent, currentYear });
 }
 
 // Function to generate HTML for a single post
 async function generateSingleHTML(title, content) {
-    const singleTemplate = templates['single'];
-    const renderedContent = renderTemplate(singleTemplate, { title, content });
-    return renderWithBase(renderedContent, { title });
+    const singleTemplate = await readFile(layoutsDir, 'single');
+    const renderedContent = await renderTemplate(singleTemplate, { title, content });
+    return await renderWithBase(renderedContent, { title });
 }
 
 // Function to generate the index page
 async function generateIndex(posts) {
-    const listTemplate = templates['list'];
-    const indexTemplate = templates['index'];
-    const listHTML = renderTemplate(listTemplate, { posts });
-    const renderedContent = renderTemplate(indexTemplate, { list: listHTML });
-    return renderWithBase(renderedContent, { title: 'Home' });
+    const listTemplate = await readFile(layoutsDir, 'list');
+    const indexTemplate = await readFile(layoutsDir, 'index');
+    const listHTML = await renderTemplate(listTemplate, { posts });
+    const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
+    return await renderWithBase(renderedContent, { title: 'Home' });
 }
 
 // Function to process all posts and generate HTML files
 async function processContent() {
-    console.time('Build Time'); // Start timer
+    const startTime = Date.now();
     const files = await fs.readdir(contentDir);
     const markdownFiles = files.filter(file => file.endsWith('.md'));
 
-    await fs.ensureDir(outputDir); // Ensure output directory exists
+    await fs.ensureDir(outputDir);
 
     const posts = [];
-    let processedCount = 0; // Initialize counter for created content
+    let processedCount = 0;
 
     for (const file of markdownFiles) {
         const postFile = `${contentDir}/${file}`;
-        const fileContent = await fs.readFile(postFile, 'utf-8');
-        const { data, content } = matter(fileContent);
-        const title = data.title || file.replace('.md', '');
-        const slug = data.slug || title.replace(/\s+/g, '-').toLowerCase();
-        const postURL = `${slug}.html`;
-        const htmlContent = marked(content);
+        const outputFile = `${outputDir}/${file.replace('.md', '.html')}`;
 
+        // Read the Markdown file as a stream
+        const readStream = createReadStream(postFile, 'utf-8');
+        const writeStream = createWriteStream(outputFile);
+
+        // Read the file content
+        const fileContent = await new Promise((resolve, reject) => {
+            let data = '';
+            readStream.on('data', chunk => data += chunk);
+            readStream.on('end', () => resolve(data));
+            readStream.on('error', reject);
+        });
+
+        // Process the Markdown content
+        const { data, content } = matter(fileContent);
+           const title = data.title || file.replace('.md', '');
+        const htmlContent = marked(content);
         const html = await generateSingleHTML(title, htmlContent);
 
-        const outputFile = `${outputDir}/${postURL}`;
-        await fs.writeFile(outputFile, html);
-        console.log(`Generated: ${outputFile}`);
+        // Write the generated HTML to the output file
+        await writeStream.write(html);
+        writeStream.end();
 
-        posts.push({ title, url: postURL });
-        processedCount++; // Increment counter for each processed file
+        console.log(`Generated: ${outputFile}`);
+        posts.push({ title, url: outputFile });
+        processedCount++;
     }
 
+    // Generate the index page
     const indexHTML = await generateIndex(posts);
     const indexOutputFile = `${outputDir}/index.html`;
     await fs.writeFile(indexOutputFile, indexHTML);
     console.log(`Generated: ${indexOutputFile}`);
 
-    console.timeEnd('Build Time'); // End timer
-    return processedCount; // Return the count of processed files
+    const endTime = Date.now();
+    console.log(`Build Time: ${endTime - startTime} ms`);
+    return processedCount;
 }
-
 
 // Main function to run the SSG
 async function runSSG() {
     try {
-        await preloadTemplates();
-        await preloadPartials();
-
         console.log('--- Starting Static Site Generation ---');
-        const startTime = Date.now(); // Start timestamp
-
-        const contentCount = await processContent(); // Get processed content count
-
-        const endTime = Date.now(); // End timestamp
-        const buildDuration = endTime - startTime; // Calculate build duration in milliseconds
-
+        const contentCount = await processContent();
         console.log('--- Build Statistics ---');
         console.log(`Total Content Processed: ${contentCount} files`);
-        console.log(`Total Build Time: ${buildDuration} ms`);
-
     } catch (err) {
         console.error('Error:', err);
     }
 }
 
 runSSG();
+
