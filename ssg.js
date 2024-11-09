@@ -190,7 +190,7 @@ async function processContent() {
     console.log('--- Build Statistics ---');
     console.log(`Total Posts Generated: ${posts.length}`);
     console.log(`Total Build Time: ${totalElapsed} seconds`);
-    console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length).toFixed(2)} seconds`);
+   console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(2)} milliseconds`);
 }
 
 
