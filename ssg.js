@@ -91,25 +91,33 @@ async function processContent() {
     await fs.ensureDir(outputDir);
 
     const posts = [];
+    let processedCount = 0;
+
+    // Create an array of promises for processing each markdown file
     const postPromises = markdownFiles.map(async (file) => {
         const postFile = `${contentDir}/${file}`;
-        const fileContent = await fs.readFile(postFile, 'utf-8');
-        const { data, content } = matter(fileContent);
-        const title = data.title || file.replace('.md', '');
-        const slug = data.slug || title.replace(/\s+/g, '-').toLowerCase();
-        const postURL = `${slug}.html`;
-        const htmlContent = marked(content);
+        try {
+            const fileContent = await fs.readFile(postFile, 'utf-8');
+            const { data, content } = matter(fileContent);
+            const title = data.title || file.replace('.md', '');
+            const slug = data.slug || title.replace(/\s+/g, '-').toLowerCase();
+            const postURL = `${slug}.html`;
+            const htmlContent = marked(content);
 
-        const html = await generateSingleHTML(title, htmlContent);
+            const html = await generateSingleHTML(title, htmlContent);
 
-        const outputFile = `${outputDir}/${postURL}`;
-        await fs.writeFile(outputFile, html);
-        console.log(`Generated: ${outputFile}`);
+            const outputFile = `${outputDir}/${postURL}`;
+            await fs.writeFile(outputFile, html);
+            console.log(`Generated: ${outputFile}`);
 
-        posts.push({ title, url: postURL });
+            posts.push({ title, url: postURL });
+            processedCount++;
+        } catch (err) {
+            console.error(`Error processing file ${postFile}:`, err);
+        }
     });
 
-    // Wait for all posts to be processed
+    // Wait for all post processing to complete
     await Promise.all(postPromises);
 
     const indexHTML = await generateIndex(posts);
@@ -119,7 +127,7 @@ async function processContent() {
 
     const endTime = Date.now();
     console.log(`Build Time: ${endTime - startTime} ms`);
-    return posts.length;
+    return processedCount;
 }
 
 
