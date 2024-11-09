@@ -7,6 +7,8 @@ const layoutsDir = 'layouts';
 const partialsDir = 'partials';
 const outputDir = 'public';
 
+const cachedPartials = {}; // Cache for partials with {{cache> partialName }}
+
 // Function to read a file from a directory
 async function readFile(dir, name) {
     const filePath = `${dir}/${name}.html`;
@@ -16,15 +18,33 @@ async function readFile(dir, name) {
     return '';
 }
 
+// Function to read a partial with optional caching
+async function readPartial(partialName, useCache = false) {
+    if (useCache) {
+        // Return cached content if available
+        if (cachedPartials[partialName]) {
+            return cachedPartials[partialName];
+        }
+        // Read and cache the partial if not already cached
+        const content = await readFile(partialsDir, partialName);
+        cachedPartials[partialName] = content;
+        return content;
+    } else {
+        // For non-cached partials, read directly without caching
+        return await readFile(partialsDir, partialName);
+    }
+}
+
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    // Step 1: Replace partials asynchronously
-    const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
+    // Step 1: Replace partials asynchronously (cached and non-cached)
+    const partialMatches = [...template.matchAll(/{{(cache>)?\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
-        const [fullMatch, partialName] = match;
-        const partialContent = await readFile(partialsDir, partialName);
+        const [fullMatch, cacheIndicator, partialName] = match;
+        const useCache = cacheIndicator !== undefined;
+        const partialContent = await readPartial(partialName, useCache);
         template = template.replace(fullMatch, partialContent || '');
     }
 
