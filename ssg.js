@@ -25,30 +25,33 @@ async function readFileWithCache(cache, dir, name) {
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    // Include partials dynamically
-    template = template.replace(/{{>\s*([\w]+)\s*}}/g, async (_, partialName) => {
-        return await readFileWithCache(partials, partialsDir, partialName);
+    // Handle async partial includes using replaceAll with async function
+    template = await template.replace(/{{>\s*([\w]+)\s*}}/g, async (_, partialName) => {
+        const partialContent = await readFileWithCache(partials, partialsDir, partialName);
+        return partialContent;
     });
 
     // Handle loops: {{#each items}}...{{/each}}
-    template = template.replace(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g, (_, collection, innerTemplate) => {
+    template = await template.replace(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g, async (_, collection, innerTemplate) => {
         const items = context[collection];
         if (!Array.isArray(items)) return '';
-        return items.map(item => renderTemplate(innerTemplate, { ...context, ...item })).join('');
+        const renderedItems = await Promise.all(items.map(item => renderTemplate(innerTemplate, { ...context, ...item })));
+        return renderedItems.join('');
     });
 
     // Handle conditionals: {{#if condition}}...{{/if}}
-    template = template.replace(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g, (_, condition, innerTemplate) => {
+    template = await template.replace(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g, async (_, condition, innerTemplate) => {
         return context[condition] ? innerTemplate : '';
     });
 
     // Handle variables: {{ variable }}
-    template = template.replace(/{{\s*([\w]+)\s*}}/g, (_, key) => {
+    template = await template.replace(/{{\s*([\w]+)\s*}}/g, (_, key) => {
         return context[key] || '';
     });
 
     return template;
 }
+
 
 // Function to wrap content in base template
 async function renderWithBase(templateContent, context = {}) {
