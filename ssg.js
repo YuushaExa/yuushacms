@@ -7,92 +7,96 @@ const layoutsDir = 'layouts';
 const partialsDir = 'partials';
 const outputDir = 'public';
 
-// Function to read a file from a directory
-async function readFile(dir, name) {
-    const filePath = `${dir}/${name}.html`;
-    if (await fs.pathExists(filePath)) {
-        return await fs.readFile(filePath, 'utf-8');
+const templates = {}; // Store preloaded templates
+const partials = {};  // Store preloaded partials
+
+// Function to read a template file
+async function readTemplate(templatePath) {
+    return fs.readFile(templatePath, 'utf-8');
+}
+
+// Function to preload all templates
+async function preloadTemplates() {
+    const templateFiles = await fs.readdir(layoutsDir);
+    for (const file of templateFiles) {
+        const templateName = file.replace('.html', '');
+        templates[templateName] = await readTemplate(`${layoutsDir}/${file}`);
     }
-    return '';
+    console.log('Templates preloaded:', Object.keys(templates));
+}
+
+// Function to preload all partials
+async function preloadPartials() {
+    const partialFiles = await fs.readdir(partialsDir);
+    for (const file of partialFiles) {
+        const partialName = file.replace('.html', '');
+        partials[partialName] = await readTemplate(`${partialsDir}/${file}`);
+    }
+    console.log('Partials preloaded:', Object.keys(partials));
 }
 
 // Function to render a template with context and partials
-async function renderTemplate(template, context = {}) {
+function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    // Step 1: Replace partials asynchronously
-    const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
-    for (const match of partialMatches) {
-        const [fullMatch, partialName] = match;
-        const partialContent = await readFile(partialsDir, partialName);
-        template = template.replace(fullMatch, partialContent || '');
-    }
+    // Include partials
+    template = template.replace(/{{>\s*([\w]+)\s*}}/g, (_, partialName) => {
+        return partials[partialName] || '';
+    });
 
-    // Step 2: Replace loops ({{#each items}}...{{/each}})
-    const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
-    for (const match of loopMatches) {
-        const [fullMatch, collection, innerTemplate] = match;
+    // Handle loops: {{#each items}}...{{/each}}
+    template = template.replace(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g, (_, collection, innerTemplate) => {
         const items = context[collection];
-        if (Array.isArray(items)) {
-            const renderedItems = await Promise.all(
-                items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
-            );
-            template = template.replace(fullMatch, renderedItems.join(''));
-        } else {
-            template = template.replace(fullMatch, '');
-        }
-    }
+        if (!Array.isArray(items)) return '';
+        return items.map(item => renderTemplate(innerTemplate, { ...context, ...item })).join('');
+    });
 
-    // Step 3: Replace conditionals ({{#if condition}}...{{/if}})
-    const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
-    for (const match of conditionalMatches) {
-        const [fullMatch, condition, innerTemplate] = match;
-        template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
-    }
+    // Handle conditionals: {{#if condition}}...{{/if}}
+    template = template.replace(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g, (_, condition, innerTemplate) => {
+        return context[condition] ? innerTemplate : '';
+    });
 
-    // Step 4: Replace variables ({{ variable }})
-    const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
-    for (const match of variableMatches) {
-        const [fullMatch, key] = match;
-        template = template.replace(fullMatch, context[key] || '');
-    }
+    // Handle variables: {{ variable }}
+    template = template.replace(/{{\s*([\w]+)\s*}}/g, (_, key) => {
+        return context[key] || '';
+    });
 
     return template;
 }
 
 // Function to wrap content in base template
-async function renderWithBase(templateContent, context = {}) {
-    const baseTemplate = await readFile(layoutsDir, 'base');
-    const currentYear = new Date().getFullYear();
-    return await renderTemplate(baseTemplate, { ...context, content: templateContent, currentYear });
+function renderWithBase(templateContent, context = {}) {
+    const baseTemplate = templates['base'];
+    const currentYear = new Date().getFullYear(); 
+    return renderTemplate(baseTemplate, { ...context, content: templateContent,currentYear });
 }
 
 // Function to generate HTML for a single post
 async function generateSingleHTML(title, content) {
-    const singleTemplate = await readFile(layoutsDir, 'single');
-    const renderedContent = await renderTemplate(singleTemplate, { title, content });
-    return await renderWithBase(renderedContent, { title });
+    const singleTemplate = templates['single'];
+    const renderedContent = renderTemplate(singleTemplate, { title, content });
+    return renderWithBase(renderedContent, { title });
 }
 
 // Function to generate the index page
 async function generateIndex(posts) {
-    const listTemplate = await readFile(layoutsDir, 'list');
-    const indexTemplate = await readFile(layoutsDir, 'index');
-    const listHTML = await renderTemplate(listTemplate, { posts });
-    const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
-    return await renderWithBase(renderedContent, { title: 'Home' });
+    const listTemplate = templates['list'];
+    const indexTemplate = templates['index'];
+    const listHTML = renderTemplate(listTemplate, { posts });
+    const renderedContent = renderTemplate(indexTemplate, { list: listHTML });
+    return renderWithBase(renderedContent, { title: 'Home' });
 }
 
 // Function to process all posts and generate HTML files
 async function processContent() {
-    const startTime = Date.now(); // Start timer
+    console.time('Build Time'); // Start timer
     const files = await fs.readdir(contentDir);
     const markdownFiles = files.filter(file => file.endsWith('.md'));
 
-    await fs.ensureDir(outputDir);
+    await fs.ensureDir(outputDir); // Ensure output directory exists
 
     const posts = [];
-    let processedCount = 0;
+    let processedCount = 0; // Initialize counter for created content
 
     for (const file of markdownFiles) {
         const postFile = `${contentDir}/${file}`;
@@ -110,7 +114,7 @@ async function processContent() {
         console.log(`Generated: ${outputFile}`);
 
         posts.push({ title, url: postURL });
-        processedCount++;
+        processedCount++; // Increment counter for each processed file
     }
 
     const indexHTML = await generateIndex(posts);
@@ -118,18 +122,29 @@ async function processContent() {
     await fs.writeFile(indexOutputFile, indexHTML);
     console.log(`Generated: ${indexOutputFile}`);
 
-    const endTime = Date.now();
-    console.log(`Build Time: ${endTime - startTime} ms`);
-    return processedCount;
+    console.timeEnd('Build Time'); // End timer
+    return processedCount; // Return the count of processed files
 }
+
 
 // Main function to run the SSG
 async function runSSG() {
     try {
+        await preloadTemplates();
+        await preloadPartials();
+
         console.log('--- Starting Static Site Generation ---');
-        const contentCount = await processContent();
+        const startTime = Date.now(); // Start timestamp
+
+        const contentCount = await processContent(); // Get processed content count
+
+        const endTime = Date.now(); // End timestamp
+        const buildDuration = endTime - startTime; // Calculate build duration in milliseconds
+
         console.log('--- Build Statistics ---');
         console.log(`Total Content Processed: ${contentCount} files`);
+        console.log(`Total Build Time: ${buildDuration} ms`);
+
     } catch (err) {
         console.error('Error:', err);
     }
