@@ -151,13 +151,18 @@ async function processContent() {
     const timings = [];
     const startTime = Date.now();
 
-    const postPromises = markdownFiles.map(async (file) => {
-        const postFile = `${contentDir}/${file}`;
+    // Read all markdown files in parallel
+    const fileContents = await Promise.all(markdownFiles.map(file => 
+        fs.readFile(`${contentDir}/${file}`, 'utf-8')
+    ));
+
+    const postPromises = fileContents.map(async (fileContent, index) => {
+        const fileName = markdownFiles[index];
+        const postFile = `${contentDir}/${fileName}`;
         const postStartTime = Date.now();
         try {
-            const fileContent = await fs.readFile(postFile, 'utf-8');
             const { data, content } = matter(fileContent);
-            const title = data.title || file.replace('.md', '');
+            const title = data.title || fileName.replace('.md', '');
             const slug = data.slug || title.replace(/\s+/g, '-').toLowerCase();
             const postURL = `${slug}.html`;
             const htmlContent = marked(content);
@@ -187,6 +192,7 @@ async function processContent() {
     console.log(`Total Build Time: ${totalElapsed} seconds`);
     console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length).toFixed(2)} seconds`);
 }
+
 
 // Main function to run the SSG
 async function runSSG() {
