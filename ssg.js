@@ -16,7 +16,8 @@ const config = {
     partials: {
         include: [], // Specify partials to include
         exclude: []  // Specify partials to exclude
-    }
+    },
+    TestRaw: 'yes' // Set to 'yes' to skip templating and processing
 };
 
 const layoutCache = {};
@@ -141,19 +142,46 @@ async function generateIndex(posts) {
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
 
+// Function to process all posts and generate HTML files
 async function processContent() {
+    const startTime = Date.now(); // Start timer
+
+    // Check if TestRaw is enabled
+    if (config.TestRaw.toLowerCase() === 'yes') {
+        console.log('--- TestRaw Mode Enabled ---');
+        const files = await fs.readdir(contentDir);
+        const markdownFiles = files.filter(file => file.endsWith('.md'));
+        
+        await fs.ensureDir(outputDir);
+
+        // Copy raw markdown files to the output directory without processing
+        const copyPromises = markdownFiles.map(async (file) => {
+            const srcFile = `${contentDir}/${file}`;
+            const destFile = `${outputDir}/${file}`;
+            await fs.copy(srcFile, destFile);
+            console.log(`Copied raw file: ${destFile}`);
+        });
+
+        await Promise.all(copyPromises);
+
+        const endTime = Date.now();
+        console.log(`--- TestRaw Complete ---`);
+        console.log(`Total Files Copied: ${markdownFiles.length}`);
+        console.log(`Total Time: ${(endTime - startTime) / 1000} seconds`);
+        return markdownFiles.length;
+    }
+
+    // Normal processing if TestRaw is not enabled
     const files = await fs.readdir(contentDir);
     const markdownFiles = files.filter(file => file.endsWith('.md'));
 
     await fs.ensureDir(outputDir);
 
     const posts = [];
-    const timings = [];
-    const startTime = Date.now();
+    let processedCount = 0;
 
     const postPromises = markdownFiles.map(async (file) => {
         const postFile = `${contentDir}/${file}`;
-        const postStartTime = Date.now();
         try {
             const fileContent = await fs.readFile(postFile, 'utf-8');
             const { data, content } = matter(fileContent);
@@ -163,13 +191,13 @@ async function processContent() {
             const htmlContent = marked(content);
 
             const html = await generateSingleHTML(title, htmlContent);
-            await fs.writeFile(`${outputDir}/${postURL}`, html);
-            posts.push({ title, url: postURL });
 
-            const endTime = Date.now();
-            const elapsed = ((endTime - postStartTime) / 1000).toFixed(2);
-            console.log(`Generated: ${postURL} in ${elapsed} seconds`);
-            timings.push(elapsed);
+            const outputFile = `${outputDir}/${postURL}`;
+            await fs.writeFile(outputFile, html);
+            console.log(`Generated: ${outputFile}`);
+
+            posts.push({ title, url: postURL });
+            processedCount++;
         } catch (err) {
             console.error(`Error processing file ${postFile}:`, err);
         }
@@ -178,15 +206,15 @@ async function processContent() {
     await Promise.all(postPromises);
 
     const indexHTML = await generateIndex(posts);
-    await fs.writeFile(`${outputDir}/index.html`, indexHTML);
+    const indexOutputFile = `${outputDir}/index.html`;
+    await fs.writeFile(indexOutputFile, indexHTML);
+    console.log(`Generated: ${indexOutputFile}`);
 
-    const totalEndTime = Date.now();
-    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(2);
-    console.log('--- Build Statistics ---');
-    console.log(`Total Posts Generated: ${posts.length}`);
-    console.log(`Total Build Time: ${totalElapsed} seconds`);
-    console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length).toFixed(2)} seconds`);
+    const endTime = Date.now();
+    console.log(`Build Time: ${(endTime - startTime) / 1000} seconds`);
+    return processedCount;
 }
+
 
 // Main function to run the SSG
 async function runSSG() {
