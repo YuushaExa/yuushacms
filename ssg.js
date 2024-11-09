@@ -1,11 +1,6 @@
 const fs = require('fs-extra');
 const marked = require('marked');
 const matter = require('gray-matter');
-const { createReadStream, createWriteStream } = require('fs');
-const { pipeline } = require('stream');
-const { promisify } = require('util');
-
-const pipelineAsync = promisify(pipeline);
 
 const contentDir = 'content';
 const layoutsDir = 'layouts';
@@ -25,37 +20,44 @@ async function readFile(dir, name) {
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    // Create a map for partials
-    const partialsMap = new Map();
+    // Step 1: Replace partials asynchronously
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
-        if (!partialsMap.has(partialName)) {
-            const partialContent = await readFile(partialsDir, partialName);
-            partialsMap.set(partialName, partialContent || '');
-        }
-        template = template.replace(fullMatch, partialsMap.get(partialName));
+        const partialContent = await readFile(partialsDir, partialName);
+        template = template.replace(fullMatch, partialContent || '');
     }
 
-    // Replace loops, conditionals, and variables in a single pass
-    const regex = /{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}|{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}|{{\s*([\w]+)\s*}}/g;
-
-    const result = template.replace(regex, (match, eachCollection, innerTemplate, ifCondition, ifInnerTemplate, variable) => {
-        if (eachCollection) {
-            const items = context[eachCollection];
-            if (Array.isArray(items)) {
-                return items.map(item => renderTemplate(innerTemplate, { ...context, ...item })).join('');
-            }
-            return '';
-        } else if (ifCondition) {
-            return context[ifCondition] ? ifInnerTemplate : '';
-        } else if (variable) {
-            return context[variable] || '';
+    // Step 2: Replace loops ({{#each items}}...{{/each}})
+    const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
+    for (const match of loopMatches) {
+        const [fullMatch, collection, innerTemplate] = match;
+        const items = context[collection];
+        if (Array.isArray(items)) {
+            const renderedItems = await Promise.all(
+                items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
+            );
+            template = template.replace(fullMatch, renderedItems.join(''));
+        } else {
+            template = template.replace(fullMatch, '');
         }
-        return match; // Fallback
-    });
+    }
 
-    return result;
+    // Step 3: Replace conditionals ({{#if condition}}...{{/if}})
+    const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
+    for (const match of conditionalMatches) {
+        const [fullMatch, condition, innerTemplate] = match;
+        template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
+    }
+
+    // Step 4: Replace variables ({{ variable }})
+    const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
+    for (const match of variableMatches) {
+        const [fullMatch, key] = match;
+        template = template.replace(fullMatch, context[key] || '');
+    }
+
+    return template;
 }
 
 // Function to wrap content in base template
@@ -72,15 +74,19 @@ async function generateSingleHTML(title, content) {
     return await renderWithBase(renderedContent, { title });
 }
 
+// Function to generate the post list
+async function generatePostList(posts) {
+    const listTemplate = await readFile(layoutsDir, 'list');
+    return await renderTemplate(listTemplate, { posts });
+}
+
 // Function to generate the index page
 async function generateIndex(posts) {
-    const listTemplate = await readFile(layoutsDir, 'list');
-    const listHTML = await generatePostList(posts); // Ensure this is awaited
+    const listHTML = await generatePostList(posts); // Use the new function
     const indexTemplate = await readFile(layoutsDir, 'index');
     const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
-
 
 // Function to process all posts and generate HTML files
 async function processContent() {
@@ -130,7 +136,6 @@ async function processContent() {
     return processedCount;
 }
 
-
 // Main function to run the SSG
 async function runSSG() {
     try {
@@ -143,5 +148,5 @@ async function runSSG() {
     }
 }
 
+// Run the static site generator
 runSSG();
-
