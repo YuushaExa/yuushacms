@@ -86,41 +86,37 @@ async function preloadTemplates() {
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
-    for (const match of partialMatches) {
-        const [fullMatch, partialName] = match;
-        const partialContent = partialCache[partialName] || await readFile(partialsDir, partialName);
-        template = template.replace(fullMatch, partialContent || '');
-    }
+    // Combine all regex matches into a single pass
+    const matches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}|{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}|{{>\s*([\w]+)\s*}}|{{\s*([\w]+)\s*}}/g)];
 
-    const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
-    for (const match of loopMatches) {
-        const [fullMatch, collection, innerTemplate] = match;
-        const items = context[collection];
-        if (Array.isArray(items)) {
-            const renderedItems = await Promise.all(
-                items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
-            );
-            template = template.replace(fullMatch, renderedItems.join(''));
-        } else {
-            template = template.replace(fullMatch, '');
+    for (const match of matches) {
+        if (match[1]) { // Conditional
+            const [fullMatch, condition, innerTemplate] = match;
+            template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
+        } else if (match[3]) { // Each
+            const [fullMatch, collection, innerTemplate] = match;
+            const items = context[collection];
+            if (Array.isArray(items)) {
+                const renderedItems = await Promise.all(
+                    items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
+                );
+                template = template.replace(fullMatch, renderedItems.join(''));
+            } else {
+                template = template.replace(fullMatch, '');
+            }
+        } else if (match[5]) { // Partial
+            const [fullMatch, partialName] = match;
+            const partialContent = partialCache[partialName] || await readFile(partialsDir, partialName);
+            template = template.replace(fullMatch, partialContent || '');
+        } else if (match[6]) { // Variable
+            const [fullMatch, key] = match;
+            template = template.replace(fullMatch, context[key] || '');
         }
-    }
-
-    const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
-    for (const match of conditionalMatches) {
-        const [fullMatch, condition, innerTemplate] = match;
-        template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
-    }
-
-    const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
-    for (const match of variableMatches) {
-        const [fullMatch, key] = match;
-        template = template.replace(fullMatch, context[key] || '');
     }
 
     return template;
 }
+
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
