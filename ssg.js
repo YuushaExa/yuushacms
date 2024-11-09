@@ -83,47 +83,34 @@ async function generateIndex(posts) {
 
 // Function to process all posts and generate HTML files
 async function processContent() {
-    const startTime = Date.now();
+    const startTime = Date.now(); // Start timer
     const files = await fs.readdir(contentDir);
     const markdownFiles = files.filter(file => file.endsWith('.md'));
 
     await fs.ensureDir(outputDir);
 
     const posts = [];
-    let processedCount = 0;
-
-    for (const file of markdownFiles) {
+    const postPromises = markdownFiles.map(async (file) => {
         const postFile = `${contentDir}/${file}`;
-        const outputFile = `${outputDir}/${file.replace('.md', '.html')}`;
-
-        // Read the Markdown file as a stream
-        const readStream = createReadStream(postFile, 'utf-8');
-        const writeStream = createWriteStream(outputFile);
-
-        // Read the file content
-        const fileContent = await new Promise((resolve, reject) => {
-            let data = '';
-            readStream.on('data', chunk => data += chunk);
-            readStream.on('end', () => resolve(data));
-            readStream.on('error', reject);
-        });
-
-        // Process the Markdown content
+        const fileContent = await fs.readFile(postFile, 'utf-8');
         const { data, content } = matter(fileContent);
-           const title = data.title || file.replace('.md', '');
+        const title = data.title || file.replace('.md', '');
+        const slug = data.slug || title.replace(/\s+/g, '-').toLowerCase();
+        const postURL = `${slug}.html`;
         const htmlContent = marked(content);
+
         const html = await generateSingleHTML(title, htmlContent);
 
-        // Write the generated HTML to the output file
-        await writeStream.write(html);
-        writeStream.end();
-
+        const outputFile = `${outputDir}/${postURL}`;
+        await fs.writeFile(outputFile, html);
         console.log(`Generated: ${outputFile}`);
-        posts.push({ title, url: outputFile });
-        processedCount++;
-    }
 
-    // Generate the index page
+        posts.push({ title, url: postURL });
+    });
+
+    // Wait for all posts to be processed
+    await Promise.all(postPromises);
+
     const indexHTML = await generateIndex(posts);
     const indexOutputFile = `${outputDir}/index.html`;
     await fs.writeFile(indexOutputFile, indexHTML);
@@ -131,8 +118,9 @@ async function processContent() {
 
     const endTime = Date.now();
     console.log(`Build Time: ${endTime - startTime} ms`);
-    return processedCount;
+    return posts.length;
 }
+
 
 // Main function to run the SSG
 async function runSSG() {
