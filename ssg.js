@@ -47,11 +47,13 @@ async function readFile(dir, name) {
 
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
-    if (!template) return '';
+     if (!template) return '';
 
     // Step 1: Replace partials asynchronously
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
-       for (const match of partialMatches) {
+    const processedPartials = new Set(); // Track processed partials
+
+    for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
 
         // Check if the partial should be included based on the config
@@ -64,8 +66,15 @@ async function renderTemplate(template, context = {}) {
             continue; // Skip this partial if it's excluded
         }
 
+        // Check if this partial has already been processed
+        if (processedPartials.has(partialName)) {
+            console.log(`Using cached partial: ${partialName}`);
+            continue; // Skip reading if already processed
+        }
+
         const partialContent = await readFile(partialsDir, partialName);
         template = template.replace(fullMatch, partialContent || '');
+        processedPartials.add(partialName); // Mark this partial as processed
     }
 
     // Step 2: Replace loops ({{#each items}}...{{/each}})
