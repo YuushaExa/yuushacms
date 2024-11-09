@@ -7,18 +7,13 @@ const layoutsDir = 'layouts';
 const partialsDir = 'partials';
 const outputDir = 'public';
 
-const templates = {}; // Cache for templates
-const partials = {};  // Cache for partials
-
-// Function to read a file with caching
-async function readFileWithCache(cache, dir, name) {
-    if (!cache[name]) {
-        const filePath = `${dir}/${name}.html`;
-        if (await fs.pathExists(filePath)) {
-            cache[name] = await fs.readFile(filePath, 'utf-8');
-        }
+// Function to read a file from a directory
+async function readFile(dir, name) {
+    const filePath = `${dir}/${name}.html`;
+    if (await fs.pathExists(filePath)) {
+        return await fs.readFile(filePath, 'utf-8');
     }
-    return cache[name] || '';
+    return '';
 }
 
 // Function to render a template with context and partials
@@ -29,7 +24,7 @@ async function renderTemplate(template, context = {}) {
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
-        const partialContent = await readFileWithCache(partials, partialsDir, partialName);
+        const partialContent = await readFile(partialsDir, partialName);
         template = template.replace(fullMatch, partialContent || '');
     }
 
@@ -65,25 +60,24 @@ async function renderTemplate(template, context = {}) {
     return template;
 }
 
-
 // Function to wrap content in base template
 async function renderWithBase(templateContent, context = {}) {
-    const baseTemplate = await readFileWithCache(templates, layoutsDir, 'base');
+    const baseTemplate = await readFile(layoutsDir, 'base');
     const currentYear = new Date().getFullYear();
     return await renderTemplate(baseTemplate, { ...context, content: templateContent, currentYear });
 }
 
 // Function to generate HTML for a single post
 async function generateSingleHTML(title, content) {
-    const singleTemplate = await readFileWithCache(templates, layoutsDir, 'single');
+    const singleTemplate = await readFile(layoutsDir, 'single');
     const renderedContent = await renderTemplate(singleTemplate, { title, content });
     return await renderWithBase(renderedContent, { title });
 }
 
 // Function to generate the index page
 async function generateIndex(posts) {
-    const listTemplate = await readFileWithCache(templates, layoutsDir, 'list');
-    const indexTemplate = await readFileWithCache(templates, layoutsDir, 'index');
+    const listTemplate = await readFile(layoutsDir, 'list');
+    const indexTemplate = await readFile(layoutsDir, 'index');
     const listHTML = await renderTemplate(listTemplate, { posts });
     const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
     return await renderWithBase(renderedContent, { title: 'Home' });
