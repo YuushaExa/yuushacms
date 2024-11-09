@@ -11,11 +11,11 @@ const outputDir = 'public';
 const config = {
     layouts: {
         include: [], // Specify layouts to include, e.g., 'base', 'single', 'list'
-        exclude: ['base', 'single', 'list', 'index']  // Specify layouts to exclude
+        exclude: []  // Specify layouts to exclude
     },
     partials: {
         include: [], // Specify partials to include
-        exclude: ['head', 'footer', 'navbar']  // Specify partials to exclude
+        exclude: []  // Specify partials to exclude
     }
 };
 
