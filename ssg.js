@@ -25,29 +25,42 @@ async function readFileWithCache(cache, dir, name) {
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    // Handle async partial includes using replaceAll with async function
-    template = await template.replace(/{{>\s*([\w]+)\s*}}/g, async (_, partialName) => {
+    // Step 1: Replace partials asynchronously
+    const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
+    for (const match of partialMatches) {
+        const [fullMatch, partialName] = match;
         const partialContent = await readFileWithCache(partials, partialsDir, partialName);
-        return partialContent;
-    });
+        template = template.replace(fullMatch, partialContent || '');
+    }
 
-    // Handle loops: {{#each items}}...{{/each}}
-    template = await template.replace(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g, async (_, collection, innerTemplate) => {
+    // Step 2: Replace loops ({{#each items}}...{{/each}})
+    const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
+    for (const match of loopMatches) {
+        const [fullMatch, collection, innerTemplate] = match;
         const items = context[collection];
-        if (!Array.isArray(items)) return '';
-        const renderedItems = await Promise.all(items.map(item => renderTemplate(innerTemplate, { ...context, ...item })));
-        return renderedItems.join('');
-    });
+        if (Array.isArray(items)) {
+            const renderedItems = await Promise.all(
+                items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
+            );
+            template = template.replace(fullMatch, renderedItems.join(''));
+        } else {
+            template = template.replace(fullMatch, '');
+        }
+    }
 
-    // Handle conditionals: {{#if condition}}...{{/if}}
-    template = await template.replace(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g, async (_, condition, innerTemplate) => {
-        return context[condition] ? innerTemplate : '';
-    });
+    // Step 3: Replace conditionals ({{#if condition}}...{{/if}})
+    const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
+    for (const match of conditionalMatches) {
+        const [fullMatch, condition, innerTemplate] = match;
+        template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
+    }
 
-    // Handle variables: {{ variable }}
-    template = await template.replace(/{{\s*([\w]+)\s*}}/g, (_, key) => {
-        return context[key] || '';
-    });
+    // Step 4: Replace variables ({{ variable }})
+    const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
+    for (const match of variableMatches) {
+        const [fullMatch, key] = match;
+        template = template.replace(fullMatch, context[key] || '');
+    }
 
     return template;
 }
