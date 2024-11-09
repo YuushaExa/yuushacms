@@ -41,13 +41,24 @@ async function readFile(dir, name) {
 }
 
 // Function to preload all layouts and partials
+// Function to preload layouts and partials based on config
 async function preloadTemplates() {
     const layoutFiles = await fs.readdir(layoutsDir);
     for (const file of layoutFiles) {
         if (file.endsWith('.html')) {
             const layoutName = file.replace('.html', '');
-            layoutCache[layoutName] = await fs.readFile(`${layoutsDir}/${file}`, 'utf-8');
-            console.log(`Preloaded layout: ${layoutName}`);
+
+            // Check include/exclude logic for layouts
+            const shouldIncludeLayout =
+                (config.layouts.include.length === 0 || config.layouts.include.includes(layoutName)) &&
+                !config.layouts.exclude.includes(layoutName);
+
+            if (shouldIncludeLayout) {
+                layoutCache[layoutName] = await fs.readFile(`${layoutsDir}/${file}`, 'utf-8');
+                console.log(`Preloaded layout: ${layoutName}`);
+            } else {
+                console.log(`Skipped layout: ${layoutName}`);
+            }
         }
     }
 
@@ -55,8 +66,18 @@ async function preloadTemplates() {
     for (const file of partialFiles) {
         if (file.endsWith('.html')) {
             const partialName = file.replace('.html', '');
-            partialCache[partialName] = await fs.readFile(`${partialsDir}/${file}`, 'utf-8');
-            console.log(`Preloaded partial: ${partialName}`);
+
+            // Check include/exclude logic for partials
+            const shouldIncludePartial =
+                (config.partials.include.length === 0 || config.partials.include.includes(partialName)) &&
+                !config.partials.exclude.includes(partialName);
+
+            if (shouldIncludePartial) {
+                partialCache[partialName] = await fs.readFile(`${partialsDir}/${file}`, 'utf-8');
+                console.log(`Preloaded partial: ${partialName}`);
+            } else {
+                console.log(`Skipped partial: ${partialName}`);
+            }
         }
     }
 }
