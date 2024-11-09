@@ -10,7 +10,7 @@ const outputDir = 'public';
 // Configuration for layouts and partials
 const config = {
     layouts: {
-        include: [], // Specify layouts to include
+        include: [], // Specify layouts to include example 'base', 'single', 'list'
         exclude: [] // Specify layouts to exclude
     },
     partials: {
@@ -19,12 +19,29 @@ const config = {
     }
 };
 
-// Function to read a file from a directory
+const layoutCache = {};
+const partialCache = {};
+
+// Function to read a file from a directory with caching
 async function readFile(dir, name) {
+    const cache = dir === layoutsDir ? layoutCache : partialCache;
     const filePath = `${dir}/${name}.html`;
-    if (await fs.pathExists(filePath)) {
-        return await fs.readFile(filePath, 'utf-8');
+
+    // Check if the content is already cached
+    if (cache[name]) {
+        console.log(`Cache hit for ${name} in ${dir}`);
+        return cache[name]; // Return cached content
     }
+
+    // Read from file system if not cached
+    if (await fs.pathExists(filePath)) {
+        const content = await fs.readFile(filePath, 'utf-8');
+        cache[name] = content; // Cache the content
+        console.log(`Read ${name} from ${dir} and cached it`);
+        return content;
+    }
+
+    console.log(`File ${name} not found in ${dir}`);
     return '';
 }
 
@@ -34,14 +51,16 @@ async function renderTemplate(template, context = {}) {
 
     // Step 1: Replace partials asynchronously
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
-    for (const match of partialMatches) {
+       for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
 
         // Check if the partial should be included based on the config
         if (config.partials.include.length > 0 && !config.partials.include.includes(partialName)) {
+            console.log(`Skipping partial: ${partialName} (not included in config)`);
             continue; // Skip this partial if it's not included
         }
         if (config.partials.exclude.includes(partialName)) {
+            console.log(`Skipping partial: ${partialName} (excluded in config)`);
             continue; // Skip this partial if it's excluded
         }
 
