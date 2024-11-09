@@ -7,41 +7,27 @@ const layoutsDir = 'layouts';
 const partialsDir = 'partials';
 const outputDir = 'public';
 
-const templates = {}; // Store preloaded templates
-const partials = {};  // Store preloaded partials
+const templates = {}; // Cache for templates
+const partials = {};  // Cache for partials
 
-// Function to read a template file
-async function readTemplate(templatePath) {
-    return fs.readFile(templatePath, 'utf-8');
-}
-
-// Function to preload all templates
-async function preloadTemplates() {
-    const templateFiles = await fs.readdir(layoutsDir);
-    for (const file of templateFiles) {
-        const templateName = file.replace('.html', '');
-        templates[templateName] = await readTemplate(`${layoutsDir}/${file}`);
+// Function to read a file with caching
+async function readFileWithCache(cache, dir, name) {
+    if (!cache[name]) {
+        const filePath = `${dir}/${name}.html`;
+        if (await fs.pathExists(filePath)) {
+            cache[name] = await fs.readFile(filePath, 'utf-8');
+        }
     }
-    console.log('Templates preloaded:', Object.keys(templates));
-}
-
-// Function to preload all partials
-async function preloadPartials() {
-    const partialFiles = await fs.readdir(partialsDir);
-    for (const file of partialFiles) {
-        const partialName = file.replace('.html', '');
-        partials[partialName] = await readTemplate(`${partialsDir}/${file}`);
-    }
-    console.log('Partials preloaded:', Object.keys(partials));
+    return cache[name] || '';
 }
 
 // Function to render a template with context and partials
-function renderTemplate(template, context = {}) {
+async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    // Include partials
-    template = template.replace(/{{>\s*([\w]+)\s*}}/g, (_, partialName) => {
-        return partials[partialName] || '';
+    // Include partials dynamically
+    template = template.replace(/{{>\s*([\w]+)\s*}}/g, async (_, partialName) => {
+        return await readFileWithCache(partials, partialsDir, partialName);
     });
 
     // Handle loops: {{#each items}}...{{/each}}
@@ -65,38 +51,38 @@ function renderTemplate(template, context = {}) {
 }
 
 // Function to wrap content in base template
-function renderWithBase(templateContent, context = {}) {
-    const baseTemplate = templates['base'];
-    const currentYear = new Date().getFullYear(); 
-    return renderTemplate(baseTemplate, { ...context, content: templateContent,currentYear });
+async function renderWithBase(templateContent, context = {}) {
+    const baseTemplate = await readFileWithCache(templates, layoutsDir, 'base');
+    const currentYear = new Date().getFullYear();
+    return await renderTemplate(baseTemplate, { ...context, content: templateContent, currentYear });
 }
 
 // Function to generate HTML for a single post
 async function generateSingleHTML(title, content) {
-    const singleTemplate = templates['single'];
-    const renderedContent = renderTemplate(singleTemplate, { title, content });
-    return renderWithBase(renderedContent, { title });
+    const singleTemplate = await readFileWithCache(templates, layoutsDir, 'single');
+    const renderedContent = await renderTemplate(singleTemplate, { title, content });
+    return await renderWithBase(renderedContent, { title });
 }
 
 // Function to generate the index page
 async function generateIndex(posts) {
-    const listTemplate = templates['list'];
-    const indexTemplate = templates['index'];
-    const listHTML = renderTemplate(listTemplate, { posts });
-    const renderedContent = renderTemplate(indexTemplate, { list: listHTML });
-    return renderWithBase(renderedContent, { title: 'Home' });
+    const listTemplate = await readFileWithCache(templates, layoutsDir, 'list');
+    const indexTemplate = await readFileWithCache(templates, layoutsDir, 'index');
+    const listHTML = await renderTemplate(listTemplate, { posts });
+    const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
+    return await renderWithBase(renderedContent, { title: 'Home' });
 }
 
 // Function to process all posts and generate HTML files
 async function processContent() {
-    console.time('Build Time'); // Start timer
+    const startTime = Date.now(); // Start timer
     const files = await fs.readdir(contentDir);
     const markdownFiles = files.filter(file => file.endsWith('.md'));
 
-    await fs.ensureDir(outputDir); // Ensure output directory exists
+    await fs.ensureDir(outputDir);
 
     const posts = [];
-    let processedCount = 0; // Initialize counter for created content
+    let processedCount = 0;
 
     for (const file of markdownFiles) {
         const postFile = `${contentDir}/${file}`;
@@ -114,7 +100,7 @@ async function processContent() {
         console.log(`Generated: ${outputFile}`);
 
         posts.push({ title, url: postURL });
-        processedCount++; // Increment counter for each processed file
+        processedCount++;
     }
 
     const indexHTML = await generateIndex(posts);
@@ -122,29 +108,18 @@ async function processContent() {
     await fs.writeFile(indexOutputFile, indexHTML);
     console.log(`Generated: ${indexOutputFile}`);
 
-    console.timeEnd('Build Time'); // End timer
-    return processedCount; // Return the count of processed files
+    const endTime = Date.now();
+    console.log(`Build Time: ${endTime - startTime} ms`);
+    return processedCount;
 }
-
 
 // Main function to run the SSG
 async function runSSG() {
     try {
-        await preloadTemplates();
-        await preloadPartials();
-
         console.log('--- Starting Static Site Generation ---');
-        const startTime = Date.now(); // Start timestamp
-
-        const contentCount = await processContent(); // Get processed content count
-
-        const endTime = Date.now(); // End timestamp
-        const buildDuration = endTime - startTime; // Calculate build duration in milliseconds
-
+        const contentCount = await processContent();
         console.log('--- Build Statistics ---');
         console.log(`Total Content Processed: ${contentCount} files`);
-        console.log(`Total Build Time: ${buildDuration} ms`);
-
     } catch (err) {
         console.error('Error:', err);
     }
