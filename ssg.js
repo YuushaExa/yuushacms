@@ -75,11 +75,12 @@ async function generateSingleHTML(title, content) {
 // Function to generate the index page
 async function generateIndex(posts) {
     const listTemplate = await readFile(layoutsDir, 'list');
+    const listHTML = await generatePostList(posts); // Ensure this is awaited
     const indexTemplate = await readFile(layoutsDir, 'index');
-    const listHTML = await renderTemplate(listTemplate, { posts });
     const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
+
 
 // Function to process all posts and generate HTML files
 async function processContent() {
