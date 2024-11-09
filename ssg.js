@@ -7,6 +7,18 @@ const layoutsDir = 'layouts';
 const partialsDir = 'partials';
 const outputDir = 'public';
 
+// Configuration for layouts and partials
+const config = {
+    layouts: {
+        include: [], // Specify layouts to include
+        exclude: [] // Specify layouts to exclude
+    },
+    partials: {
+        include: [], // Specify partials to include
+        exclude: [] // Specify partials to exclude
+    }
+};
+
 // Function to read a file from a directory
 async function readFile(dir, name) {
     const filePath = `${dir}/${name}.html`;
@@ -24,6 +36,15 @@ async function renderTemplate(template, context = {}) {
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
+
+        // Check if the partial should be included based on the config
+        if (config.partials.include.length > 0 && !config.partials.include.includes(partialName)) {
+            continue; // Skip this partial if it's not included
+        }
+        if (config.partials.exclude.includes(partialName)) {
+            continue; // Skip this partial if it's excluded
+        }
+
         const partialContent = await readFile(partialsDir, partialName);
         template = template.replace(fullMatch, partialContent || '');
     }
@@ -63,6 +84,15 @@ async function renderTemplate(template, context = {}) {
 // Function to wrap content in base template
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = await readFile(layoutsDir, 'base');
+
+    // Check if the base layout should be included
+    if (config.layouts.include.length > 0 && !config.layouts.include.includes('base')) {
+        return templateContent; // Return content without wrapping if excluded
+    }
+    if (config.layouts.exclude.includes('base')) {
+        return templateContent; // Return content without wrapping if excluded
+    }
+
     const currentYear = new Date().getFullYear();
     return await renderTemplate(baseTemplate, { ...context, content: templateContent, currentYear });
 }
@@ -70,6 +100,15 @@ async function renderWithBase(templateContent, context = {}) {
 // Function to generate HTML for a single post
 async function generateSingleHTML(title, content) {
     const singleTemplate = await readFile(layoutsDir, 'single');
+
+    // Check if the single layout should be included
+    if (config.layouts.include.length > 0 && !config.layouts.include.includes('single')) {
+        return content; // Return content without wrapping if excluded
+    }
+    if (config.layouts.exclude.includes('single')) {
+        return content; // Return content without wrapping if excluded
+    }
+
     const renderedContent = await renderTemplate(singleTemplate, { title, content });
     return await renderWithBase(renderedContent, { title });
 }
@@ -77,6 +116,15 @@ async function generateSingleHTML(title, content) {
 // Function to generate the post list
 async function generatePostList(posts) {
     const listTemplate = await readFile(layoutsDir, 'list');
+
+    // Check if the list layout should be included
+    if (config.layouts.include.length > 0 && !config.layouts.include.includes('list')) {
+        return ''; // Return empty if excluded
+    }
+    if (config.layouts.exclude.includes('list')) {
+        return ''; // Return empty if excluded
+    }
+
     return await renderTemplate(listTemplate, { posts });
 }
 
@@ -84,6 +132,15 @@ async function generatePostList(posts) {
 async function generateIndex(posts) {
     const listHTML = await generatePostList(posts); // Use the new function
     const indexTemplate = await readFile(layoutsDir, 'index');
+
+    // Check if the index layout should be included
+    if (config.layouts.include.length > 0 && !config.layouts.include.includes('index')) {
+        return ''; // Return empty if excluded
+    }
+    if (config.layouts.exclude.includes('index')) {
+        return ''; // Return empty if excluded
+    }
+
     const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
@@ -150,3 +207,4 @@ async function runSSG() {
 
 // Run the static site generator
 runSSG();
+
