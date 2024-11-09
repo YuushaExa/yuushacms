@@ -118,13 +118,59 @@ async function renderTemplate(template, context = {}) {
 
     return template;
 }
+async function processContent() {
+    const startTime = Date.now(); // Start timer
+    const files = await fs.readdir(contentDir);
+    const markdownFiles = files.filter(file => file.endsWith('.md'));
+
+    await fs.ensureDir(outputDir);
+
+    const posts = [];
+    let processedCount = 0;
+
+    // Process each markdown file and generate the corresponding HTML file
+    const postPromises = markdownFiles.map(async (file) => {
+        const postFile = `${contentDir}/${file}`;
+        try {
+            const fileContent = await fs.readFile(postFile, 'utf-8');
+            const { data, content } = matter(fileContent);
+            const title = data.title || file.replace('.md', '');
+            const slug = data.slug || title.replace(/\s+/g, '-').toLowerCase();
+            const postURL = `${slug}.html`;
+            const htmlContent = marked(content);
+
+            const html = await generateSingleHTML(title, htmlContent);
+
+            const outputFile = `${outputDir}/${postURL}`;
+            await fs.writeFile(outputFile, html);
+            console.log(`Generated: ${outputFile}`);
+
+            posts.push({ title, url: postURL });
+            processedCount++;
+        } catch (err) {
+            console.error(`Error processing file ${postFile}:`, err);
+        }
+    });
+
+    // Wait for all post processing to complete
+    await Promise.all(postPromises);
+
+    const indexHTML = await generateIndex(posts);
+    const indexOutputFile = `${outputDir}/index.html`;
+    await fs.writeFile(indexOutputFile, indexHTML);
+    console.log(`Generated: ${indexOutputFile}`);
+
+    const endTime = Date.now();
+    console.log(`Build Time: ${endTime - startTime} ms`);
+    return processedCount;
+}
 
 // Main function to run the SSG
 async function runSSG() {
     try {
         console.log('--- Starting Static Site Generation ---');
         await preloadTemplates(); // Preload layouts and partials before processing content
-        const contentCount = await processContent();
+        const contentCount = await processContent(); // Now processContent is defined
         console.log('--- Build Statistics ---');
         console.log(`Total Content Processed: ${contentCount} files`);
     } catch (err) {
