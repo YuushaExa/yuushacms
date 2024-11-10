@@ -7,6 +7,7 @@ const contentDir = 'content';
 const layoutsDir = 'prebuild/layouts'; // Updated to point to prebuild/layouts
 const outputDir = 'public';
 const dataDir = 'prebuild/data'; // Directory for JSON data sources
+const partialsDir = 'partials';
 
 // Configuration for layouts and partials
 const config = {
