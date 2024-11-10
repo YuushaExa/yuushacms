@@ -42,34 +42,33 @@ async function readFile(dir, name) {
 }
 
 // Function to preload layouts and partials based on config
+// Function to preload layouts and partials based on config
 async function preloadTemplates() {
     const layoutFiles = await fs.readdir(layoutsDir);
-    const layoutPromises = layoutFiles.map(async (file) => {
+    const layoutStartTime = Date.now(); // Start timer for layouts
+    for (const file of layoutFiles) {
         if (file.endsWith('.html')) {
             const layoutName = file.replace('.html', '');
 
             // Check include/exclude logic for layouts
             const shouldIncludeLayout =
-                (config.layouts.include.length === 0 || config.layouts.include.includes(layoutName)) &&
+                (config.layouts.include.length === 0 || config.layouts.layouts.include.includes(layoutName)) &&
                 !config.layouts.exclude.includes(layoutName);
 
             if (shouldIncludeLayout) {
-                try {
-                    layoutCache[layoutName] = await fs.readFile(path.join(layoutsDir, file), 'utf-8');
-                    console.log(`Preloaded layout: ${layoutName}`);
-                } catch (err) {
-                    console.error(`Error reading layout ${layoutName}:`, err);
-                }
+                layoutCache[layoutName] = await fs.readFile(`${layoutsDir}/${file}`, 'utf-8');
+                console.log(`Preloaded layout: ${layoutName}`);
             } else {
                 console.log(`Skipped layout: ${layoutName}`);
             }
         }
-    });
-
-    await Promise.all(layoutPromises);
+    }
+    const layoutEndTime = Date.now(); // End timer for layouts
+    console.log(`Time taken to preload layouts: ${layoutEndTime - layoutStartTime} ms`);
 
     const partialFiles = await fs.readdir(partialsDir);
-    const partialPromises = partialFiles.map(async (file) => {
+    const partialStartTime = Date.now(); // Start timer for partials
+    for (const file of partialFiles) {
         if (file.endsWith('.html')) {
             const partialName = file.replace('.html', '');
 
@@ -79,20 +78,17 @@ async function preloadTemplates() {
                 !config.partials.exclude.includes(partialName);
 
             if (shouldIncludePartial) {
-                try {
-                    partialCache[partialName] = await fs.readFile(path.join(partialsDir, file), 'utf-8');
-                    console.log(`Preloaded partial: ${partialName}`);
-                } catch (err) {
-                    console.error(`Error reading partial ${partialName}:`, err);
-                }
+                partialCache[partialName] = await fs.readFile(`${partialsDir}/${file}`, 'utf-8');
+                console.log(`Preloaded partial: ${partialName}`);
             } else {
                 console.log(`Skipped partial: ${partialName}`);
             }
         }
-    });
-
-    await Promise.all(partialPromises);
+    }
+    const partialEndTime = Date.now(); // End timer for partials
+    console.log(`Time taken to preload partials: ${partialEndTime - partialStartTime} ms`);
 }
+
 
 
 // Function to render a template with context and partials
