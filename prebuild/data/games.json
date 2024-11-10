@@ -1,0 +1,12 @@
+[
+    {
+        "title": "First Game",
+        "date": "2023-10-01",
+        "content": "This is the content of the first game."
+    },
+    {
+        "title": "Second Game",
+        "date": "2023-10-02",
+        "content": "This is the content of the second game."
+    }
+]
