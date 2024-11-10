@@ -224,27 +224,34 @@ async function processContent() {
     const startTime = Date.now(); // Start total build time
 
     // Process all collected markdown files
-    for (const file of markdownFiles) {
-        const postStartTime = Date.now(); // Start individual post time
-        const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
-        const { data, content: mdContent } = matter(content);
-        const htmlContent = marked(mdContent);
-const html = await generateSingleHTML(data.title, htmlContent, file);
+// Process all collected markdown files
+for (const file of markdownFiles) {
+    const postStartTime = Date.now(); // Start individual post time
+    const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
+    const { data, content: mdContent } = matter(content);
+    const htmlContent = marked(mdContent);
+    
+    // Pass the file name to generateSingleHTML
+    const html = await generateSingleHTML(data.title, htmlContent, file); 
 
-        // Ensure the output directory exists
-            const slug = file.replace('.md', '');
-        const outputFilePath = path.join(outputDir, `${slug}.html`);
-        const outputDirPath = path.dirname(outputFilePath);
-        await fs.ensureDir(outputDirPath); // Ensure the directory exists
+    // Ensure the output directory exists
+    const slug = file.replace('.md', '');
+    const outputFilePath = path.join(outputDir, `${slug}.html`);
+    const outputDirPath = path.dirname(outputFilePath);
+    await fs.ensureDir(outputDirPath); // Ensure the directory exists
 
-        await fs.writeFile(outputFilePath, html);
-        posts.push({ title: data.title, url: `${slug}.html` });
+    await fs.writeFile(outputFilePath, html);
+    
+    // Use the title from front matter or fallback to slug
+    const postTitle = data.title || slug.replace(/-/g, ' '); // Use slug as title if no front matter title
+    posts.push({ title: postTitle, url: `${slug}.html` }); 
 
-        const endTime = Date.now();
-        const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
-        console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
-        timings.push(elapsed);
-    }
+    const endTime = Date.now();
+    const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
+    console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
+    timings.push(elapsed);
+}
+
     
     const indexHTML = await generateIndex(posts);
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
