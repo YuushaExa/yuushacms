@@ -200,10 +200,14 @@ async function processContent() {
     }
 
     await fs.ensureDir(outputDir);
+
     const posts = [];
-    
+    const timings = [];
+    const startTime = Date.now(); // Start total build time
+
     // Process all collected markdown files
     for (const file of markdownFiles) {
+        const postStartTime = Date.now(); // Start individual post time
         const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
@@ -217,12 +221,24 @@ async function processContent() {
 
         await fs.writeFile(outputFilePath, html);
         posts.push({ title: data.title, url: `${slug}.html` });
+
+        const endTime = Date.now();
+        const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
+        console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
+        timings.push(elapsed);
     }
     
     const indexHTML = await generateIndex(posts);
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
-}
 
+    // Calculate total build time
+    const totalEndTime = Date.now();
+    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
+    console.log('--- Build Statistics ---');
+    console.log(`Total Posts Generated: ${posts.length}`);
+    console.log(`Total Build Time: ${totalElapsed} seconds`);
+    console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(4)} milliseconds`);
+}
 
 
 // Main SSG execution
