@@ -6,9 +6,8 @@ const contentDir = 'content';
 const layoutsDir = 'layouts';
 const partialsDir = 'partials';
 const outputDir = 'public';
-const jsonDataDir = 'prebuild/data';
 
-// Configuration for layouts, partials, and JSON
+// Configuration for layouts and partials
 const config = {
     layouts: {
         include: [], // Specify layouts to include, e.g., 'base', 'single', 'list'
@@ -17,10 +16,6 @@ const config = {
     partials: {
         include: [], // Specify partials to include
         exclude: []  // Specify partials to exclude
-    },
-    json: {
-        include: [], // Specify JSON files to include
-        exclude: []   // Specify JSON files to exclude
     }
 };
 
@@ -45,17 +40,8 @@ async function readFile(dir, name) {
     return '';
 }
 
-// Function to read a JSON file
-async function readJsonFile(fileName) {
-    const filePath = `${jsonDataDir}/${fileName}`;
-    if (await fs.pathExists(filePath)) {
-        const content = await fs.readFile(filePath, 'utf-8');
-        return JSON.parse(content);
-    }
-    return [];
-}
-
 // Function to preload all layouts and partials
+// Function to preload layouts and partials based on config
 async function preloadTemplates() {
     const layoutFiles = await fs.readdir(layoutsDir);
     for (const file of layoutFiles) {
@@ -100,34 +86,13 @@ async function preloadTemplates() {
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    // Handle JSON data inclusion
-    const jsonMatches = [...template.matchAll(/{{\s*\$data\s*=\s*([\w\.]+)\s*}}/g)];
-    for (const match of jsonMatches) {
-        const [fullMatch, jsonFile] = match;
-        const jsonData = await readJsonFile(jsonFile);
-        context['data'] = jsonData; // Add JSON data to context
-        template = template.replace(fullMatch, '');
-    }
-
-    // Handle range over JSON data
-    const rangeMatches = [...template.matchAll(/{{-?\s*range\s+\$data\s*}}([\s\S]*?){{-?\s*end\s*}}/g)];
-    for (const match of rangeMatches) {
-        const [fullMatch, innerTemplate] = match;
-        const renderedItems = await Promise.all(
-            context.data.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
-        );
-        template = template.replace(fullMatch, renderedItems.join(''));
-    }
-
-    // Handle partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
-               const partialContent = partialCache[partialName] || await readFile(partialsDir, partialName);
+        const partialContent = partialCache[partialName] || await readFile(partialsDir, partialName);
         template = template.replace(fullMatch, partialContent || '');
     }
 
-    // Handle loops
     const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
     for (const match of loopMatches) {
         const [fullMatch, collection, innerTemplate] = match;
@@ -142,14 +107,12 @@ async function renderTemplate(template, context = {}) {
         }
     }
 
-    // Handle conditionals
     const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
     for (const match of conditionalMatches) {
         const [fullMatch, condition, innerTemplate] = match;
         template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
     }
 
-    // Handle variables
     const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
     for (const match of variableMatches) {
         const [fullMatch, key] = match;
@@ -177,24 +140,10 @@ async function generateIndex(posts) {
     const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
-function jsonToMarkdown(jsonData, title) {
-    let markdownContent = `# ${title}\n\n`;
-
-    jsonData.forEach(item => {
-        markdownContent += `## ${item.title}\n`;
-        markdownContent += `${item.content}\n\n`;
-    });
-
-    return markdownContent;
-}
 
 async function processContent() {
     const files = await fs.readdir(contentDir);
     const markdownFiles = files.filter(file => file.endsWith('.md'));
-
-    // Read JSON files from the prebuild/data directory
-    const jsonFiles = await fs.readdir(jsonDataDir);
-    const jsonDataFiles = jsonFiles.filter(file => file.endsWith('.json'));
 
     await fs.ensureDir(outputDir);
 
@@ -233,16 +182,6 @@ async function processContent() {
 
     await Promise.all(postPromises);
 
-    // Process JSON files and convert them to Markdown
-    for (const jsonFile of jsonDataFiles) {
-        const jsonData = await readJsonFile(jsonFile);
-        const title = jsonFile.replace('.json', ''); // Use the JSON filename as the title
-        const markdownContent = jsonToMarkdown(jsonData, title);
-        const markdownFileName = `${title}.md`;
-        await fs.writeFile(`${contentDir}/${markdownFileName}`, markdownContent);
-        console.log(`Converted ${jsonFile} to ${markdownFileName}`);
-    }
-
     const indexHTML = await generateIndex(posts);
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
 
@@ -251,8 +190,9 @@ async function processContent() {
     console.log('--- Build Statistics ---');
     console.log(`Total Posts Generated: ${posts.length}`);
     console.log(`Total Build Time: ${totalElapsed} seconds`);
-    console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(4)} milliseconds`);
+   console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(4)} milliseconds`);
 }
+
 
 // Main function to run the SSG
 async function runSSG() {
