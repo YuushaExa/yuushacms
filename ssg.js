@@ -174,10 +174,33 @@ async function jsonToMarkdown() {
 async function processContent() {
     await jsonToMarkdown(); // Convert JSON data to Markdown
     const files = await fs.readdir(contentDir);
-    const markdownFiles = files.flatMap(file => fs.readdirSync(`${contentDir}/${file}`).map(f => `${file}/${f}`));
-    
+
+    // Initialize an array to hold all markdown files
+    const markdownFiles = [];
+
+    // Traverse through the content directory
+    for (const file of files) {
+        const fullPath = `${contentDir}/${file}`;
+        const stats = await fs.stat(fullPath);
+
+        if (stats.isDirectory()) {
+            // If it's a directory, read its contents
+            const nestedFiles = await fs.readdir(fullPath);
+            nestedFiles.forEach(nestedFile => {
+                if (nestedFile.endsWith('.md')) {
+                    markdownFiles.push(`${file}/${nestedFile}`);
+                }
+            });
+        } else if (stats.isFile() && file.endsWith('.md')) {
+            // If it's a file and ends with .md, add it to the list
+            markdownFiles.push(file);
+        }
+    }
+
     await fs.ensureDir(outputDir);
     const posts = [];
+    
+    // Process all collected markdown files
     for (const file of markdownFiles) {
         const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
         const { data, content: mdContent } = matter(content);
@@ -187,9 +210,11 @@ async function processContent() {
         await fs.writeFile(`${outputDir}/${slug}.html`, html);
         posts.push({ title: data.title, url: `${slug}.html` });
     }
+    
     const indexHTML = await generateIndex(posts);
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
 }
+
 
 // Main SSG execution
 async function runSSG() {
