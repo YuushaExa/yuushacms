@@ -172,7 +172,7 @@ async function processContent() {
             posts.push({ title, url: postURL });
 
             const endTime = Date.now();
-            const elapsed = ((endTime - postStartTime) / 1000).toFixed(2);
+            const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
             console.log(`Generated: ${postURL} in ${elapsed} seconds`);
             timings.push(elapsed);
         } catch (err) {
@@ -186,11 +186,11 @@ async function processContent() {
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
 
     const totalEndTime = Date.now();
-    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(2);
+    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
     console.log('--- Build Statistics ---');
     console.log(`Total Posts Generated: ${posts.length}`);
     console.log(`Total Build Time: ${totalElapsed} seconds`);
-   console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(2)} milliseconds`);
+   console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(4)} milliseconds`);
 }
 
 
