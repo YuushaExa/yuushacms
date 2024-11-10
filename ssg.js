@@ -129,11 +129,14 @@ async function renderWithBase(templateContent, context = {}) {
     return await renderTemplate(baseTemplate, { ...context, content: templateContent, currentYear: new Date().getFullYear() });
 }
 
-async function generateSingleHTML(title, content) {
+async function generateSingleHTML(title, content, fileName) {
+    // Use the file name as the title if the provided title is empty
+    const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' '); // Replace hyphens with spaces for better readability
     const singleTemplate = layoutCache['single'] || await readFile(layoutsDir, 'single');
-    const renderedContent = await renderTemplate(singleTemplate, { title, content });
-    return await renderWithBase(renderedContent, { title });
+    const renderedContent = await renderTemplate(singleTemplate, { title: finalTitle, content });
+    return await renderWithBase(renderedContent, { title: finalTitle });
 }
+
 
 async function generateIndex(posts) {
     const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
@@ -226,7 +229,7 @@ async function processContent() {
         const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
-        const html = await generateSingleHTML(data.title, htmlContent);
+const html = await generateSingleHTML(data.title, htmlContent, file);
 
         // Ensure the output directory exists
             const slug = file.replace('.md', '');
