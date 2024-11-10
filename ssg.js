@@ -4,7 +4,7 @@ const matter = require('gray-matter');
 const path = require('path');
 
 const contentDir = 'content';
-const layoutsDir = 'prebuild/layouts'; // Updated to point to prebuild/layouts
+const PrebuildlayoutsDir = 'prebuild/layouts'; // Updated to point to prebuild/layouts
 const outputDir = 'public';
 const dataDir = 'prebuild/data'; // Directory for JSON data sources
 const partialsDir = 'partials';
@@ -144,10 +144,10 @@ async function generateIndex(posts) {
 
 // Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
-    const layoutFiles = await fs.readdir(layoutsDir);
+    const layoutFiles = await fs.readdir(PrebuildlayoutsDir);
     for (const file of layoutFiles) {
         if (file.endsWith('.html')) {
-            const layoutContent = await fs.readFile(`${layoutsDir}/${file}`, 'utf-8');
+            const layoutContent = await fs.readFile(`${PrebuildlayoutsDir}/${file}`, 'utf-8');
             const jsonMatch = layoutContent.match(/{{\s*\$data\s*=\s*"([^"]+)"\s*}}/);
             if (jsonMatch) {
                 const jsonFileName = jsonMatch[1];
