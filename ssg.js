@@ -143,7 +143,6 @@ async function generateHTML() {
     await fs.ensureDir(outputDir);
 
     const posts = [];
-    const timings = [];
     const startTime = Date.now();
 
     for (const filePath of markdownFiles) {
@@ -158,24 +157,17 @@ async function generateHTML() {
         const singleTemplate = await readFile(layoutsDir, 'single');
         const renderedHTML = await renderTemplate(singleTemplate, { title, content: htmlContent });
 
-        const postStartTime = Date.now();
         await fs.writeFile(htmlFilePath, renderedHTML);
-        const postEndTime = Date.now();
+        console.log(`Generated HTML: ${htmlFilePath}`);
 
-        const elapsed = ((postEndTime - postStartTime) / 1000).toFixed(4);
-        timings.push(elapsed);
-
-        console.log(`Generated HTML: ${htmlFilePath} in ${elapsed} seconds`);
-
-        posts.push({ title, url: `${slug}.html`, time: parseFloat(elapsed) });
+        posts.push({ title, url: `${slug}.html` });
     }
 
     const totalEndTime = Date.now();
-    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
-    console.log('--- Build Statistics ---');
-    console.log(`Total Posts Generated: ${posts.length}`);
+    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(2);
+    console.log(`--- Build Complete ---`);
+    console.log(`Total Posts: ${posts.length}`);
     console.log(`Total Build Time: ${totalElapsed} seconds`);
-    console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(4)} milliseconds`);
 }
 
 // Main function to run SSG
