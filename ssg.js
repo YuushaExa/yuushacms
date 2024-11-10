@@ -6,6 +6,7 @@ const contentDir = 'content';
 const layoutsDir = 'layouts';
 const partialsDir = 'partials';
 const outputDir = 'public';
+const dataDir = 'prebuild/data'; // Directory for JSON data sources
 
 // Configuration for layouts and partials
 const config = {
@@ -40,7 +41,6 @@ async function readFile(dir, name) {
     return '';
 }
 
-// Function to preload all layouts and partials
 // Function to preload layouts and partials based on config
 async function preloadTemplates() {
     const layoutFiles = await fs.readdir(layoutsDir);
@@ -141,60 +141,57 @@ async function generateIndex(posts) {
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
 
-async function processContent() {
-    const files = await fs.readdir(contentDir);
-    const markdownFiles = files.filter(file => file.endsWith('.md'));
+// Function to convert JSON data into Markdown files
+async function jsonToMarkdown() {
+    console.log('--- Converting JSON to Markdown ---');
+    const jsonFiles = await fs.readdir(dataDir);
 
-    await fs.ensureDir(outputDir);
+    for (const file of jsonFiles) {
+        if (file.endsWith('.json')) {
+            const data = await fs.readJSON(`${dataDir}/${file}`);
+            const fileBaseName = file.replace('.json', '');
+            const markdownDir = `${contentDir}/${fileBaseName}`;
+            await fs.ensureDir(markdownDir);
 
-    const posts = [];
-    const timings = [];
-    const startTime = Date.now();
-
-    // Read all markdown files in parallel
-    const fileContents = await Promise.all(markdownFiles.map(file => 
-        fs.readFile(`${contentDir}/${file}`, 'utf-8')
-    ));
-
-    const postPromises = fileContents.map(async (fileContent, index) => {
-        const fileName = markdownFiles[index];
-        const postFile = `${contentDir}/${fileName}`;
-        const postStartTime = Date.now();
-        try {
-            const { data, content } = matter(fileContent);
-            const title = data.title || fileName.replace('.md', '');
-            const slug = data.slug || title.replace(/\s+/g, '-').toLowerCase();
-            const postURL = `${slug}.html`;
-            const htmlContent = marked(content);
-
-            const html = await generateSingleHTML(title, htmlContent);
-            await fs.writeFile(`${outputDir}/${postURL}`, html);
-            posts.push({ title, url: postURL });
-
-            const endTime = Date.now();
-            const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
-            console.log(`Generated: ${postURL} in ${elapsed} seconds`);
-            timings.push(elapsed);
-        } catch (err) {
-            console.error(`Error processing file ${postFile}:`, err);
+            if (Array.isArray(data)) {
+                for (const item of data) {
+                    const frontMatter = matter.stringify(item.desc || '', {
+                        title: item.title || 'Untitled',
+                        date: item.date || new Date().toISOString(),
+                        desc: item.desc || ''
+                    });
+                    const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
+                    const markdownFilePath = `${markdownDir}/${slug}.md`;
+                    await fs.writeFile(markdownFilePath, frontMatter);
+                    console.log(`Created Markdown: ${markdownFilePath}`);
+                }
+            }
         }
-    });
-
-    await Promise.all(postPromises);
-
-    const indexHTML = await generateIndex(posts);
-    await fs.writeFile(`${outputDir}/index.html`, indexHTML);
-
-    const totalEndTime = Date.now();
-    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
-    console.log('--- Build Statistics ---');
-    console.log(`Total Posts Generated: ${posts.length}`);
-    console.log(`Total Build Time: ${totalElapsed} seconds`);
-   console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(4)} milliseconds`);
+    }
 }
 
+// Main content processing function
+async function processContent() {
+    await jsonToMarkdown(); // Convert JSON data to Markdown
+    const files = await fs.readdir(contentDir);
+    const markdownFiles = files.flatMap(file => fs.readdirSync(`${contentDir}/${file}`).map(f => `${file}/${f}`));
+    
+    await fs.ensureDir(outputDir);
+    const posts = [];
+    for (const file of markdownFiles) {
+        const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
+        const { data, content: mdContent } = matter(content);
+        const htmlContent = marked(mdContent);
+        const html = await generateSingleHTML(data.title, htmlContent);
+        const slug = file.replace('.md', '');
+        await fs.writeFile(`${outputDir}/${slug}.html`, html);
+        posts.push({ title: data.title, url: `${slug}.html` });
+    }
+    const indexHTML = await generateIndex(posts);
+    await fs.writeFile(`${outputDir}/index.html`, indexHTML);
+}
 
-// Main function to run the SSG
+// Main SSG execution
 async function runSSG() {
     console.log('--- Starting Static Site Generation ---');
     await preloadTemplates();
