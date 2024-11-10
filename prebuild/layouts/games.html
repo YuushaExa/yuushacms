@@ -3,6 +3,12 @@
 
 {{- /* Write content page. */}}
 {{- range $data }}
-<h2>{{ .title }}</h2>
-<p>{{ .content }}</p>
+ {{- $title := .title}} 
+  {{- $content:= .content}} 
+  {{- $frontMatter := dict
+    "title" .title
+     "date" .date
+     "desc" .desc
+
+  }}
 {{ end }}
