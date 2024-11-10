@@ -177,10 +177,24 @@ async function generateIndex(posts) {
     const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
+function jsonToMarkdown(jsonData, title) {
+    let markdownContent = `# ${title}\n\n`;
+
+    jsonData.forEach(item => {
+        markdownContent += `## ${item.title}\n`;
+        markdownContent += `${item.content}\n\n`;
+    });
+
+    return markdownContent;
+}
 
 async function processContent() {
     const files = await fs.readdir(contentDir);
     const markdownFiles = files.filter(file => file.endsWith('.md'));
+
+    // Read JSON files from the prebuild/data directory
+    const jsonFiles = await fs.readdir(jsonDataDir);
+    const jsonDataFiles = jsonFiles.filter(file => file.endsWith('.json'));
 
     await fs.ensureDir(outputDir);
 
@@ -219,6 +233,16 @@ async function processContent() {
 
     await Promise.all(postPromises);
 
+    // Process JSON files and convert them to Markdown
+    for (const jsonFile of jsonDataFiles) {
+        const jsonData = await readJsonFile(jsonFile);
+        const title = jsonFile.replace('.json', ''); // Use the JSON filename as the title
+        const markdownContent = jsonToMarkdown(jsonData, title);
+        const markdownFileName = `${title}.md`;
+        await fs.writeFile(`${contentDir}/${markdownFileName}`, markdownContent);
+        console.log(`Converted ${jsonFile} to ${markdownFileName}`);
+    }
+
     const indexHTML = await generateIndex(posts);
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
 
@@ -227,7 +251,7 @@ async function processContent() {
     console.log('--- Build Statistics ---');
     console.log(`Total Posts Generated: ${posts.length}`);
     console.log(`Total Build Time: ${totalElapsed} seconds`);
-   console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(4)} milliseconds`);
+    console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(4)} milliseconds`);
 }
 
 // Main function to run the SSG
