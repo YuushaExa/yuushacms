@@ -1,11 +1,10 @@
 const fs = require('fs-extra');
 const marked = require('marked');
 const matter = require('gray-matter');
-const path = require('path'); // Ensure this is at the top if not already included
+const path = require('path');
 
 const contentDir = 'content';
-const layoutsDir = 'layouts';
-const partialsDir = 'partials';
+const layoutsDir = 'prebuild/layouts'; // Updated to point to prebuild/layouts
 const outputDir = 'public';
 const dataDir = 'prebuild/data'; // Directory for JSON data sources
 
@@ -116,7 +115,7 @@ async function renderTemplate(template, context = {}) {
 
     const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
     for (const match of variableMatches) {
-        const [fullMatch, key] = match;
+        const [fullMatch, key] =         match;
         template = template.replace(fullMatch, context[key] || '');
     }
 
@@ -142,39 +141,53 @@ async function generateIndex(posts) {
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
 
-// Function to convert JSON data into Markdown files
-async function jsonToMarkdown() {
-    console.log('--- Converting JSON to Markdown ---');
-    const jsonFiles = await fs.readdir(dataDir);
-
-    for (const file of jsonFiles) {
-        if (file.endsWith('.json')) {
-            const data = await fs.readJSON(`${dataDir}/${file}`);
-            const fileBaseName = file.replace('.json', '');
-            const markdownDir = `${contentDir}/${fileBaseName}`;
-            await fs.ensureDir(markdownDir);
-
-            if (Array.isArray(data)) {
-                for (const item of data) {
-                    const frontMatter = matter.stringify(item.desc || '', {
-                        title: item.title || 'Untitled',
-                        date: item.date || new Date().toISOString(),
-                        desc: item.desc || ''
-                    });
-                    const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
-                    const markdownFilePath = `${markdownDir}/${slug}.md`;
-                    await fs.writeFile(markdownFilePath, frontMatter);
-                    console.log(`Created Markdown: ${markdownFilePath}`);
+// Function to extract JSON data from layout files
+async function extractJsonDataFromLayouts() {
+    const layoutFiles = await fs.readdir(layoutsDir);
+    for (const file of layoutFiles) {
+        if (file.endsWith('.html')) {
+            const layoutContent = await fs.readFile(`${layoutsDir}/${file}`, 'utf-8');
+            const jsonMatch = layoutContent.match(/{{\s*\$data\s*=\s*"([^"]+)"\s*}}/);
+            if (jsonMatch) {
+                const jsonFileName = jsonMatch[1];
+                const jsonFilePath = path.join(dataDir, jsonFileName);
+                if (await fs.pathExists(jsonFilePath)) {
+                    const jsonData = await fs.readJSON(jsonFilePath);
+                    await generateMarkdownFromJson(jsonData, layoutContent);
+                } else {
+                    console.log(`JSON file not found: ${jsonFilePath}`);
                 }
             }
         }
     }
 }
 
-// Main content processing function
+// Function to generate Markdown files from JSON data based on layout content
+async function generateMarkdownFromJson(data, layoutContent) {
+    for (const item of data) {
+        const frontMatter = matter.stringify('', {
+            title: item.title || 'Untitled',
+            date: item.date || new Date().toISOString(),
+            desc: item.desc || ''
+        });
 
+        const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
+        const markdownFilePath = path.join(contentDir, `${slug}.md`);
+        
+        // Create the Markdown content using the layout
+        const markdownContent = layoutContent
+            .replace(/{{- \$title := \.title}}/, `{{- $title := "${item.title}"}}`)
+            .replace(/{{- \$content:= \.content}}/, `{{- $content:= "${item.content || ''}"}}`)
+            .replace(/{{- \$frontMatter := dict.*?}}/, frontMatter);
+
+        await fs.writeFile(markdownFilePath, markdownContent);
+        console.log(`Created Markdown: ${markdownFilePath}`);
+    }
+}
+
+// Main content processing function
 async function processContent() {
-    await jsonToMarkdown(); // Convert JSON data to Markdown
+    await extractJsonDataFromLayouts(); // Extract JSON data from layouts
     const files = await fs.readdir(contentDir);
 
     // Initialize an array to hold all markdown files
@@ -214,7 +227,7 @@ async function processContent() {
         const html = await generateSingleHTML(data.title, htmlContent);
 
         // Ensure the output directory exists
-        const slug = file.replace('.md', '');
+            const slug = file.replace('.md', '');
         const outputFilePath = path.join(outputDir, `${slug}.html`);
         const outputDirPath = path.dirname(outputFilePath);
         await fs.ensureDir(outputDirPath); // Ensure the directory exists
@@ -240,7 +253,6 @@ async function processContent() {
     console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(4)} milliseconds`);
 }
 
-
 // Main SSG execution
 async function runSSG() {
     console.log('--- Starting Static Site Generation ---');
@@ -249,3 +261,5 @@ async function runSSG() {
 }
 
 runSSG();
+
+
