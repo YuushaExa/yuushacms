@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const marked = require('marked');
 const matter = require('gray-matter');
+const path = require('path'); 
 
 const contentDir = 'content';
 const layoutsDir = 'layouts';
@@ -171,6 +172,7 @@ async function jsonToMarkdown() {
 }
 
 // Main content processing function
+
 async function processContent() {
     await jsonToMarkdown(); // Convert JSON data to Markdown
     const files = await fs.readdir(contentDir);
@@ -206,14 +208,21 @@ async function processContent() {
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
         const html = await generateSingleHTML(data.title, htmlContent);
+
+        // Ensure the output directory exists
         const slug = file.replace('.md', '');
-        await fs.writeFile(`${outputDir}/${slug}.html`, html);
+        const outputFilePath = path.join(outputDir, `${slug}.html`);
+        const outputDirPath = path.dirname(outputFilePath);
+        await fs.ensureDir(outputDirPath); // Ensure the directory exists
+
+        await fs.writeFile(outputFilePath, html);
         posts.push({ title: data.title, url: `${slug}.html` });
     }
     
     const indexHTML = await generateIndex(posts);
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
 }
+
 
 
 // Main SSG execution
