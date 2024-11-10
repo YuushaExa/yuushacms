@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const marked = require('marked');
 const matter = require('gray-matter');
+const path = require('path');
 
 const contentDir = 'content';
 const layoutsDir = 'layouts';
@@ -40,11 +41,10 @@ async function readFile(dir, name) {
     return '';
 }
 
-// Function to preload all layouts and partials
 // Function to preload layouts and partials based on config
 async function preloadTemplates() {
     const layoutFiles = await fs.readdir(layoutsDir);
-    for (const file of layoutFiles) {
+    const layoutPromises = layoutFiles.map(async (file) => {
         if (file.endsWith('.html')) {
             const layoutName = file.replace('.html', '');
 
@@ -54,16 +54,22 @@ async function preloadTemplates() {
                 !config.layouts.exclude.includes(layoutName);
 
             if (shouldIncludeLayout) {
-                layoutCache[layoutName] = await fs.readFile(`${layoutsDir}/${file}`, 'utf-8');
-                console.log(`Preloaded layout: ${layoutName}`);
+                try {
+                    layoutCache[layoutName] = await fs.readFile(path.join(layoutsDir, file), 'utf-8');
+                    console.log(`Preloaded layout: ${layoutName}`);
+                } catch (err) {
+                    console.error(`Error reading layout ${layoutName}:`, err);
+                }
             } else {
                 console.log(`Skipped layout: ${layoutName}`);
             }
         }
-    }
+    });
+
+    await Promise.all(layoutPromises);
 
     const partialFiles = await fs.readdir(partialsDir);
-    for (const file of partialFiles) {
+    const partialPromises = partialFiles.map(async (file) => {
         if (file.endsWith('.html')) {
             const partialName = file.replace('.html', '');
 
@@ -73,14 +79,21 @@ async function preloadTemplates() {
                 !config.partials.exclude.includes(partialName);
 
             if (shouldIncludePartial) {
-                partialCache[partialName] = await fs.readFile(`${partialsDir}/${file}`, 'utf-8');
-                console.log(`Preloaded partial: ${partialName}`);
+                try {
+                    partialCache[partialName] = await fs.readFile(path.join(partialsDir, file), 'utf-8');
+                    console.log(`Preloaded partial: ${partialName}`);
+                } catch (err) {
+                    console.error(`Error reading partial ${partialName}:`, err);
+                }
             } else {
                 console.log(`Skipped partial: ${partialName}`);
             }
         }
-    }
+    });
+
+    await Promise.all(partialPromises);
 }
+
 
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
