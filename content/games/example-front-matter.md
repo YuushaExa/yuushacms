@@ -19,3 +19,9 @@ Front matter is a way to include metadata in your Markdown files. It is typicall
 Using front matter allows static site generators to process your Markdown files more effectively, enabling features like sorting, filtering, and displaying metadata on your site.
 
 Thank you for reading!
+
+<h1>{{ page.title }}</h1>
+<p>By {{ page.author }} on {{ page.date | date: "%B %d, %Y" }}</p>
+<div>
+  {{ content }}
+</div>
