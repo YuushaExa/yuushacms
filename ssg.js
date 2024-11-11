@@ -147,25 +147,38 @@ async function generateIndex(posts) {
 }
 
 // Function to extract JSON data from layout files
+// Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
-    const layoutFiles = await fs.readdir(PrebuildlayoutsDir);
-    for (const file of layoutFiles) {
-        if (file.endsWith('.html')) {
-            const layoutContent = await fs.readFile(`${PrebuildlayoutsDir}/${file}`, 'utf-8');
-            const jsonMatch = layoutContent.match(/{{\s*\$data\s*=\s*"([^"]+)"\s*}}/);
-            if (jsonMatch) {
-                const jsonFileName = jsonMatch[1];
-                const jsonFilePath = path.join(dataDir, jsonFileName);
-                if (await fs.pathExists(jsonFilePath)) {
-                    const jsonData = await fs.readJSON(jsonFilePath);
-                    await generateMarkdownFromJson(jsonData, layoutContent);
-                } else {
-                    console.log(`JSON file not found: ${jsonFilePath}`);
+    try {
+        const layoutFiles = await fs.readdir(PrebuildlayoutsDir);
+        const jsonExtractionPromises = layoutFiles.map(async (file) => {
+            if (file.endsWith('.html')) {
+                try {
+                    const layoutContent = await fs.readFile(`${PrebuildlayoutsDir}/${file}`, 'utf-8');
+                    const jsonMatch = layoutContent.match(/{{\s*\$data\s*=\s*"([^"]+)"\s*}}/);
+                    if (jsonMatch) {
+                        const jsonFileName = jsonMatch[1];
+                        const jsonFilePath = path.join(dataDir, jsonFileName);
+                        if (await fs.pathExists(jsonFilePath)) {
+                            const jsonData = await fs.readJSON(jsonFilePath);
+                            await generateMarkdownFromJson(jsonData, layoutContent);
+                        } else {
+                            console.log(`JSON file not found: ${jsonFilePath} (referenced in ${file})`);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error processing file ${file}: ${error.message}`);
                 }
             }
-        }
+        });
+
+        // Wait for all JSON extractions to complete
+        await Promise.all(jsonExtractionPromises);
+    } catch (error) {
+        console.error(`Error reading layout directory: ${error.message}`);
     }
 }
+
 
 // Function to generate Markdown files from JSON data based on layout content
 async function generateMarkdownFromJson(data, layoutContent) {
