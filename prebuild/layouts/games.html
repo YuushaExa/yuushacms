@@ -3,11 +3,15 @@
 
 {{- /* Write content page. */}}
 {{- range $data }}
- {{- $title := .title}} 
-  {{- $content:= .content}} 
+  {{- $title := .title}} 
+
   {{- $frontMatter := dict
-  title: "title"
-  date: "date"
-  description: "desc"
+      "title": $title
+      "date": $date
+      "description": $content
   }}
+  ---
+  {{- $frontMatter | toYaml }}
+  ---
+
 {{ end }}
