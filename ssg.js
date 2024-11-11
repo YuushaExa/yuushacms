@@ -89,42 +89,45 @@ async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
     context.currentYear = new Date().getFullYear();
-    
-    const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
-    for (const match of partialMatches) {
-        const [fullMatch, partialName] = match;
-        const partialContent = partialCache[partialName] || await readFile(partialsDir, partialName);
-        template = template.replace(fullMatch, partialContent || '');
-    }
+    const output = [];
 
-    const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
-    for (const match of loopMatches) {
-        const [fullMatch, collection, innerTemplate] = match;
-        const items = context[collection];
-        if (Array.isArray(items)) {
-            const renderedItems = await Promise.all(
-                items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
-            );
-            template = template.replace(fullMatch, renderedItems.join(''));
-        } else {
-            template = template.replace(fullMatch, '');
+    const regex = /{{>\s*([\w]+)\s*}}|{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}|{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}|{{\s*([\w]+)\s*}}/g;
+
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(template)) !== null) {
+        output.push(template.slice(lastIndex, match.index)); // Push text before the match
+        lastIndex = match.index + match[0].length;
+
+        if (match[1]) { // Partial
+            const partialName = match[1];
+            const partialContent = partialCache[partialName] || await readFile(partialsDir, partialName);
+            output.push(partialContent || '');
+        } else if (match[2]) { // Each
+            const collection = match[2];
+            const innerTemplate = match[3];
+            const items = context[collection];
+            if (Array.isArray(items)) {
+                const renderedItems = await Promise.all(
+                    items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
+                );
+                output.push(renderedItems.join(''));
+            }
+        } else if (match[4]) { // If
+            const condition = match[4];
+            const innerTemplate = match[5];
+            output.push(context[condition] ? innerTemplate : '');
+        } else if (match[6]) { // Variable
+            const key = match[6];
+            output.push(context[key] || '');
         }
     }
 
-    const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
-    for (const match of conditionalMatches) {
-        const [fullMatch, condition, innerTemplate] = match;
-        template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
-    }
-
-    const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
-    for (const match of variableMatches) {
-        const [fullMatch, key] =         match;
-        template = template.replace(fullMatch, context[key] || '');
-    }
-
-    return template;
+    output.push(template.slice(lastIndex)); // Push remaining text
+    return output.join('');
 }
+
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
