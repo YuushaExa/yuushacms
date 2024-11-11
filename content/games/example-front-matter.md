@@ -25,3 +25,5 @@ Thank you for reading!
 <div>
   {{ content }}
 </div>
+
+create  mapping on single page
