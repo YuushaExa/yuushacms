@@ -1,5 +1,5 @@
 ---
-title: "My First Blog Post"
+title: "My First Blog"
 date: 2023-10-01
 author: "John Doe"
 tags: ["markdown", "front matter", "example"]
