@@ -146,56 +146,38 @@ async function generateIndex(posts) {
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
 
-// Function to extract JSON data from layout files and generate Markdown files
-// Function to extract JSON data from layout files and generate Markdown files
+// Function to extract JSON data from layout files
+// Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
     try {
         const layoutFiles = await fs.readdir(PrebuildlayoutsDir);
-        
-        // Process each layout file
-        const layoutPromises = layoutFiles.map(async (file) => {
+        const jsonExtractionPromises = layoutFiles.map(async (file) => {
             if (file.endsWith('.html')) {
                 try {
                     const layoutContent = await fs.readFile(`${PrebuildlayoutsDir}/${file}`, 'utf-8');
                     const jsonMatch = layoutContent.match(/{{\s*\$data\s*=\s*"([^"]+)"\s*}}/);
-                    
                     if (jsonMatch) {
                         const jsonFileName = jsonMatch[1];
                         const jsonFilePath = path.join(dataDir, jsonFileName);
-                        
                         if (await fs.pathExists(jsonFilePath)) {
                             const jsonData = await fs.readJSON(jsonFilePath);
-                            
-                            // Generate Markdown files from JSON data
-                            for (const item of jsonData) {
-                                // Render the layout with the current item as context
-                                const renderedContent = await renderTemplate(layoutContent, item);
-
-                                const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
-                                const markdownFilePath = path.join(contentDir, `${slug}.md`);
-
-                                // Write the rendered Markdown content to a file
-                                await fs.writeFile(markdownFilePath, renderedContent);
-                                console.log(`Created Markdown: ${markdownFilePath}`);
-                            }
+                            await generateMarkdownFromJson(jsonData, layoutContent);
                         } else {
                             console.log(`JSON file not found: ${jsonFilePath} (referenced in ${file})`);
                         }
                     }
                 } catch (error) {
-                    console.error(`Error processing layout file ${file}: ${error.message}`);
+                    console.error(`Error processing file ${file}: ${error.message}`);
                 }
             }
         });
 
-        // Wait for all layout processing to complete
-        await Promise.all(layoutPromises);
+        // Wait for all JSON extractions to complete
+        await Promise.all(jsonExtractionPromises);
     } catch (error) {
         console.error(`Error reading layout directory: ${error.message}`);
     }
 }
-
-
 
 
 // Function to generate Markdown files from JSON data based on layout content
@@ -304,5 +286,4 @@ async function runSSG() {
 }
 
 runSSG();
-
 
