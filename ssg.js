@@ -198,13 +198,16 @@ async function processContent() {
     await extractJsonDataFromLayouts(); // Extract JSON data from layouts
     const files = await fs.readdir(contentDir);
 
+    // Initialize an array to hold all markdown files
     const markdownFiles = [];
 
+    // Traverse through the content directory
     for (const file of files) {
         const fullPath = `${contentDir}/${file}`;
         const stats = await fs.stat(fullPath);
 
         if (stats.isDirectory()) {
+            // If it's a directory, read its contents
             const nestedFiles = await fs.readdir(fullPath);
             nestedFiles.forEach(nestedFile => {
                 if (nestedFile.endsWith('.md')) {
@@ -212,6 +215,7 @@ async function processContent() {
                 }
             });
         } else if (stats.isFile() && file.endsWith('.md')) {
+            // If it's a file and ends with .md, add it to the list
             markdownFiles.push(file);
         }
     }
@@ -220,36 +224,44 @@ async function processContent() {
 
     const posts = [];
     const timings = [];
-    const startTime = Date.now();
+    const startTime = Date.now(); // Start total build time
 
-    for (const file of markdownFiles) {
-        const postStartTime = Date.now();
-        const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
-        const { data, content: mdContent } = matter(content);
-        const htmlContent = marked(mdContent); // Convert Markdown to HTML
+    // Process all collected markdown files
+// Process all collected markdown files
+for (const file of markdownFiles) {
+    const postStartTime = Date.now(); // Start individual post time
+    const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
+    const { data, content: mdContent } = matter(content);
+    const htmlContent = marked(mdContent);
+    
+    // Pass the file name to generateSingleHTML
+    const html = await generateSingleHTML(data.title, htmlContent, file); 
 
-        console.log('HTML Content:', htmlContent); // Log the HTML content
+    // Ensure the output directory exists
+    const slug = file.replace('.md', '');
+    const outputFilePath = path.join(outputDir, `${slug}.html`);
+    const outputDirPath = path.dirname(outputFilePath);
+    await fs.ensureDir(outputDirPath); // Ensure the directory exists
 
-        const html = await generateSingleHTML(data.title, htmlContent, file); 
+    await fs.writeFile(outputFilePath, html);
+    
+    // Use the title from front matter or fallback to slug
+    const postTitle = data.title || slug.replace(/-/g, ' '); // Use slug as title if no front matter title
+    posts.push({ title: postTitle, url: `${slug}.html` }); 
 
-        const slug = file.replace('.md', '');
-        const outputFilePath = path.join(outputDir, `${slug}.html`);
-        await fs.ensureDir(path.dirname(outputFilePath));
-        await fs.writeFile(outputFilePath, html);
-        
-        const postTitle = data.title || slug.replace(/-/g, ' ');
-        posts.push({ title: postTitle, url: `${slug}.html` });
+    const endTime = Date.now();
+    const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
+    console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
+    timings.push(elapsed);
+}
 
-        const endTime = Date.now();
-        const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
-        console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
-        timings.push(elapsed);
-    }
-
+    
     const indexHTML = await generateIndex(posts);
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
 
-      const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
+    // Calculate total build time
+    const totalEndTime = Date.now();
+    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
     console.log('--- Build Statistics ---');
     console.log(`Total Posts Generated: ${posts.length}`);
     console.log(`Total Build Time: ${totalElapsed} seconds`);
