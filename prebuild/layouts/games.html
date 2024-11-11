@@ -4,6 +4,8 @@
 {{- /* Write content page. */}}
 {{- range $data }}
   {{- $title := .title}} 
+  {{- $date := .date}} 
+  {{- $content := .content}} 
 
   {{- $frontMatter := dict
       "title": $title
@@ -14,4 +16,5 @@
   {{- $frontMatter | toYaml }}
   ---
 
+  {{- $content }}
 {{ end }}
