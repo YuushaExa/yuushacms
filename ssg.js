@@ -88,6 +88,8 @@ async function preloadTemplates() {
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
+    context.currentYear = new Date().getFullYear();
+    
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
@@ -126,7 +128,7 @@ async function renderTemplate(template, context = {}) {
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
-    return await renderTemplate(baseTemplate, { ...context, content: templateContent, currentYear: new Date().getFullYear() });
+    return await renderTemplate(baseTemplate, { ...context, content: templateContent });
 }
 
 async function generateSingleHTML(title, content, fileName) {
