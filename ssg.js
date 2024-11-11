@@ -179,7 +179,7 @@ async function generateMarkdownFromJson(data) {
         const frontMatter = matter.stringify('', {
             title: item.title || 'Untitled',
             date: item.date || new Date().toISOString(),
-            desc: item.desc || ''
+            content: item.content || ''
         });
 
         const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
