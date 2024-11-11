@@ -147,24 +147,18 @@ async function generateIndex(posts) {
 }
 
 // Function to extract JSON data from layout files
-// Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
     try {
-        const layoutFiles = await fs.readdir(PrebuildlayoutsDir);
-        const jsonExtractionPromises = layoutFiles.map(async (file) => {
-            if (file.endsWith('.html')) {
+        const jsonFiles = await fs.readdir(dataDir); // Read from dataDir
+        const jsonExtractionPromises = jsonFiles.map(async (file) => {
+            if (file.endsWith('.json')) { // Check for JSON file extension
                 try {
-                    const layoutContent = await fs.readFile(`${PrebuildlayoutsDir}/${file}`, 'utf-8');
-                    const jsonMatch = layoutContent.match(/{{\s*\$data\s*=\s*"([^"]+)"\s*}}/);
-                    if (jsonMatch) {
-                        const jsonFileName = jsonMatch[1];
-                        const jsonFilePath = path.join(dataDir, jsonFileName);
-                        if (await fs.pathExists(jsonFilePath)) {
-                            const jsonData = await fs.readJSON(jsonFilePath);
-                            await generateMarkdownFromJson(jsonData, layoutContent);
-                        } else {
-                            console.log(`JSON file not found: ${jsonFilePath} (referenced in ${file})`);
-                        }
+                    const jsonFilePath = path.join(dataDir, file);
+                    if (await fs.pathExists(jsonFilePath)) {
+                        const jsonData = await fs.readJSON(jsonFilePath);
+                        await generateMarkdownFromJson(jsonData); // Generate Markdown directly from JSON data
+                    } else {
+                        console.log(`JSON file not found: ${jsonFilePath}`);
                     }
                 } catch (error) {
                     console.error(`Error processing file ${file}: ${error.message}`);
@@ -175,13 +169,12 @@ async function extractJsonDataFromLayouts() {
         // Wait for all JSON extractions to complete
         await Promise.all(jsonExtractionPromises);
     } catch (error) {
-        console.error(`Error reading layout directory: ${error.message}`);
+        console.error(`Error reading JSON directory: ${error.message}`);
     }
 }
 
-
-// Function to generate Markdown files from JSON data based on layout content
-async function generateMarkdownFromJson(data, layoutContent) {
+// Function to generate Markdown files from JSON data
+async function generateMarkdownFromJson(data) {
     for (const item of data) {
         const frontMatter = matter.stringify('', {
             title: item.title || 'Untitled',
@@ -192,11 +185,8 @@ async function generateMarkdownFromJson(data, layoutContent) {
         const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
-        // Create the Markdown content using the layout
-        const markdownContent = layoutContent
-            .replace(/{{- \$title := \.title}}/, `{{- $title := "${item.title}"}}`)
-            .replace(/{{- \$content:= \.content}}/, `{{- $content:= "${item.content || ''}"}}`)
-            .replace(/{{- \$frontMatter := dict.*?}}/, frontMatter);
+        // Create the Markdown content directly from the JSON data
+        const markdownContent = `${frontMatter}\n\n${item.content || ''}`; // Adjust as needed
 
         await fs.writeFile(markdownFilePath, markdownContent);
         console.log(`Created Markdown: ${markdownFilePath}`);
