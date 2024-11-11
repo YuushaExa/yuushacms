@@ -174,24 +174,26 @@ async function extractJsonDataFromLayouts() {
 }
 
 // Function to generate Markdown files from JSON data
+// Function to generate Markdown files from JSON data
 async function generateMarkdownFromJson(data) {
     for (const item of data) {
+        // Create front matter with only the title
         const frontMatter = matter.stringify('', {
-            title: item.title || 'Untitled',
-            date: item.date || new Date().toISOString(),
-            content: item.content || ''
+            title: item.title || 'Untitled'
         });
 
         const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
         // Create the Markdown content directly from the JSON data
-        const markdownContent = `${frontMatter}\n\n${item.content || ''}`; // Adjust as needed
+        // Include the rest of the JSON data directly in the content
+        const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`; // Adjust as needed
 
         await fs.writeFile(markdownFilePath, markdownContent);
         console.log(`Created Markdown: ${markdownFilePath}`);
     }
 }
+
 
 // Main content processing function
 async function processContent() {
