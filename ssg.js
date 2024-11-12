@@ -221,30 +221,22 @@ async function fetchCsv(url) {
 // Function to generate Markdown files from CSV data
 async function generateMarkdownFromCsv(data) {
     for (const item of data) {
+        // Create front matter with only the title
         const frontMatter = matter.stringify('', {
-            title: item.Title || 'Untitled'
+            title: item.title || 'Untitled'
         });
 
-        const slug = (item.Title || 'post')
-            .toLowerCase()
-            .replace(/[^a-z0-9-]/g, '-') // Sanitize slug
-            .replace(/--+/g, '-') // Replace multiple dashes with a single dash
-            .replace(/^-|-$/g, ''); // Remove leading and trailing dashes
-
+        const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
-        const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
-        
-        // Ensure the directory exists
-        await fs.ensureDir(path.dirname(markdownFilePath)); 
+        // Create the Markdown content directly from the CSV data
+        const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`; // Adjust as needed
 
-        try {
-            await fs.writeFile(markdownFilePath, markdownContent);
-        } catch (error) {
-            console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
-        }
+        await fs.writeFile(markdownFilePath, markdownContent);
+        console.log(`Created Markdown: ${markdownFilePath}`);
     }
 }
+
 
 
 // Function to extract JSON data from layout files
