@@ -90,13 +90,19 @@ async function renderTemplate(template, context = {}) {
 
     context.currentYear = new Date().getFullYear();
     
+    // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
         const partialContent = partialCache[partialName] || await readFile(partialsDir, partialName);
-        template = template.replace(fullMatch, partialContent || '');
+        if (partialContent) {
+            template = template.replace(fullMatch, partialContent);
+        } else {
+            console.warn(`Partial not found: ${partialName}`);
+        }
     }
 
+    // Render loops
     const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
     for (const match of loopMatches) {
         const [fullMatch, collection, innerTemplate] = match;
@@ -111,20 +117,23 @@ async function renderTemplate(template, context = {}) {
         }
     }
 
+    // Render conditionals
     const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
     for (const match of conditionalMatches) {
         const [fullMatch, condition, innerTemplate] = match;
         template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
     }
 
+    // Render variables
     const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
     for (const match of variableMatches) {
-        const [fullMatch, key] =         match;
+        const [fullMatch, key] = match;
         template = template.replace(fullMatch, context[key] || '');
     }
 
     return template;
 }
+
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
