@@ -158,7 +158,6 @@ async function generateIndex(posts) {
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
 
-const csv = require('csv-parser');
 
 // Function to extract data from CSV files
 async function extractCsvDataFromLayouts() {
