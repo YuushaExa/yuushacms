@@ -88,8 +88,10 @@ async function preloadTemplates() {
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    context.currentYear = new Date().getFullYear();
-    
+  if (isLayout) {
+        context.currentYear = new Date().getFullYear();
+    }
+        
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
@@ -128,16 +130,17 @@ async function renderTemplate(template, context = {}) {
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
-    return await renderTemplate(baseTemplate, { ...context, content: templateContent });
+    return await renderTemplate(baseTemplate, { ...context, content: templateContent }, true);
 }
 
+
 async function generateSingleHTML(title, content, fileName) {
-    // Use the file name as the title if the provided title is empty
-    const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' '); // Replace hyphens with spaces for better readability
+    const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' ');
     const singleTemplate = layoutCache['single'] || await readFile(layoutsDir, 'single');
-    const renderedContent = await renderTemplate(singleTemplate, { title: finalTitle, content });
+    const renderedContent = await renderTemplate(singleTemplate, { title: finalTitle, content }, true); // Pass true for layout
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
+
 
 
 async function generateIndex(posts) {
