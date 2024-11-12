@@ -88,10 +88,8 @@ async function preloadTemplates() {
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    // Set the current year in the context
     context.currentYear = new Date().getFullYear();
-
-    // Replace partials
+    
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
@@ -99,7 +97,6 @@ async function renderTemplate(template, context = {}) {
         template = template.replace(fullMatch, partialContent || '');
     }
 
-    // Replace loops
     const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
     for (const match of loopMatches) {
         const [fullMatch, collection, innerTemplate] = match;
@@ -114,26 +111,20 @@ async function renderTemplate(template, context = {}) {
         }
     }
 
-    // Replace conditionals
     const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
     for (const match of conditionalMatches) {
         const [fullMatch, condition, innerTemplate] = match;
         template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
     }
 
-    // Replace variables
     const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
     for (const match of variableMatches) {
-        const [fullMatch, key] = match;
-        // Only replace if the key exists in the context
-        if (context[key] !== undefined) {
-            template = template.replace(fullMatch, context[key]);
-        }
+        const [fullMatch, key] =         match;
+        template = template.replace(fullMatch, context[key] || '');
     }
 
     return template;
 }
-
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
