@@ -26,4 +26,5 @@ Thank you for reading!
   {{ content }}
 </div>
 
-create  mapping on single page
+create  mapping on single page {{ currentYear }} 
+{{ currentYear }}  {{ currentYear }} 
