@@ -85,11 +85,20 @@ async function preloadTemplates() {
 }
 
 // Function to render a template with context and partials
-async function renderTemplate(template, context = {}) {
+async function renderTemplate(template, context = {}, isMarkdown = false) {
     if (!template) return '';
 
     context.currentYear = new Date().getFullYear();
     
+    // Skip processing for currentYear if it's Markdown content
+    if (!isMarkdown) {
+        const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
+        for (const match of variableMatches) {
+            const [fullMatch, key] = match;
+            template = template.replace(fullMatch, context[key] || '');
+        }
+    }
+
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
@@ -103,7 +112,7 @@ async function renderTemplate(template, context = {}) {
         const items = context[collection];
         if (Array.isArray(items)) {
             const renderedItems = await Promise.all(
-                items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
+                items.map(item => renderTemplate(innerTemplate, { ...context, ...item }, isMarkdown))
             );
             template = template.replace(fullMatch, renderedItems.join(''));
         } else {
@@ -117,14 +126,18 @@ async function renderTemplate(template, context = {}) {
         template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
     }
 
-    const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
-    for (const match of variableMatches) {
-        const [fullMatch, key] =         match;
-        template = template.replace(fullMatch, context[key] || '');
+    // Only process variable matches if it's not Markdown
+    if (!isMarkdown) {
+        const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
+        for (const match of variableMatches) {
+            const [fullMatch, key] = match;
+            template = template.replace(fullMatch, context[key] || '');
+        }
     }
 
     return template;
 }
+
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
@@ -132,12 +145,12 @@ async function renderWithBase(templateContent, context = {}) {
 }
 
 async function generateSingleHTML(title, content, fileName) {
-    // Use the file name as the title if the provided title is empty
-    const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' '); // Replace hyphens with spaces for better readability
+    const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' ');
     const singleTemplate = layoutCache['single'] || await readFile(layoutsDir, 'single');
-    const renderedContent = await renderTemplate(singleTemplate, { title: finalTitle, content });
+    const renderedContent = await renderTemplate(singleTemplate, { title: finalTitle, content }, true); // Pass true for Markdown
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
+
 
 
 async function generateIndex(posts) {
