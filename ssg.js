@@ -225,13 +225,28 @@ async function generateMarkdownFromCsv(data) {
             title: item.Title || 'Untitled'
         });
 
-        const slug = (item.Title || 'post').toLowerCase().replace(/\s+/g, '-');
+        const slug = (item.Title || 'post')
+            .toLowerCase()
+            .replace(/[^a-z0-9-]/g, '-') // Sanitize slug
+            .replace(/--+/g, '-') // Replace multiple dashes with a single dash
+            .replace(/^-|-$/g, ''); // Remove leading and trailing dashes
+
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
-        await fs.writeFile(markdownFilePath, markdownContent);
+        
+        // Ensure the directory exists
+        await fs.ensureDir(path.dirname(markdownFilePath)); 
+
+        try {
+            await fs.writeFile(markdownFilePath, markdownContent);
+            console.log(`Created Markdown: ${markdownFilePath}`);
+        } catch (error) {
+            console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
+        }
     }
 }
+
 
 // Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
