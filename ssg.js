@@ -280,6 +280,7 @@ async function generateMarkdownFromJson(data) {
 }
 
 // Main content processing function
+// Main content processing function
 async function processContent() {
     await extractJsonDataFromLayouts(); // Extract JSON data from layouts
     await extractCsvDataFromLayouts(); // Extract CSV data from layouts
@@ -310,17 +311,22 @@ async function processContent() {
     await fs.ensureDir(outputDir);
 
     const posts = [];
-    const timings = [];
+    const skippedEntries = [];
     const startTime = Date.now(); // Start total build time
 
     // Process all collected markdown files
     for (const file of markdownFiles) {
-        const postStartTime = Date.now(); // Start individual post time
         const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
-        
-        // Pass the file name to generateSingleHTML
+
+        // Check if the title is valid
+        if (!data.title) {
+            skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
+            continue; // Skip this entry if no title
+        }
+
+        // Generate HTML for the post
         const html = await generateSingleHTML(data.title, htmlContent, file); 
 
         // Ensure the output directory exists
@@ -334,11 +340,6 @@ async function processContent() {
         // Use the title from front matter or fallback to slug
         const postTitle = data.title || slug.replace(/-/g, ' '); // Use slug as title if no front matter title
         posts.push({ title: postTitle, url: `${slug}.html` }); 
-
-        const endTime = Date.now();
-        const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
-        console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
-        timings.push(elapsed);
     }
 
     const indexHTML = await generateIndex(posts);
@@ -347,10 +348,20 @@ async function processContent() {
     // Calculate total build time
     const totalEndTime = Date.now();
     const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
+    
+    // Log final statistics
     console.log('--- Build Statistics ---');
-    console.log(`Total Posts Generated: ${posts.length}`);
-    console.log(`Total Build Time: ${totalElapsed} seconds`);
-    console.log(`Average Time per Post: ${(timings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / timings.length * 1000).toFixed(4)} milliseconds`);
+    console.log(`Total Entries Processed: ${markdownFiles.length}`);
+    console.log(`Total Files Created: ${posts.length}`);
+    
+    if (skippedEntries.length > 0) {
+        console.log(`Skipped Entries:`);
+        skippedEntries.forEach(entry => {
+            console.log(`- Title: ${entry.title}, Link: ${entry.link}`);
+        });
+    } else {
+        console.log(`No entries were skipped.`);
+    }
 }
 
 // Main SSG execution
