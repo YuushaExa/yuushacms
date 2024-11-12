@@ -27,7 +27,7 @@ const config = {
         exclude: []   // Specify JSON files to exclude
     },
     csv: {
-        include: [], // Specify CSV files to include
+        include: ["https://raw.githubusercontent.com/YuushaExa/v/refs/heads/main/test.csv"], // Specify CSV files to include
         exclude: []   // Specify CSV files to exclude
     }
 };
