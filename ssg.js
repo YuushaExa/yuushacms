@@ -222,10 +222,10 @@ async function fetchCsv(url) {
 async function generateMarkdownFromCsv(data) {
     for (const item of data) {
         const frontMatter = matter.stringify('', {
-            title: item.Title || 'Untitled'
+            title: item.title || 'Untitled'
         });
 
-        const slug = (item.Title || 'post').toLowerCase().replace(/\s+/g, '-');
+        const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
@@ -275,6 +275,7 @@ async function generateMarkdownFromJson(data) {
         
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
         await fs.writeFile(markdownFilePath, markdownContent);
+        console.log(`Created Markdown: ${markdownFilePath}`);
     }
 }
 
@@ -336,6 +337,7 @@ async function processContent() {
 
         const endTime = Date.now();
         const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
+        console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
         timings.push(elapsed);
     }
 
