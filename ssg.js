@@ -43,47 +43,6 @@ async function readFile(dir, name) {
     return '';
 }
 
-// Function to preload layouts and partials based on config
-async function preloadTemplates() {
-    const layoutFiles = await fs.readdir(layoutsDir);
-    for (const file of layoutFiles) {
-        if (file.endsWith('.html')) {
-            const layoutName = file.replace('.html', '');
-
-            // Check include/exclude logic for layouts
-            const shouldIncludeLayout =
-                (config.layouts.include.length === 0 || config.layouts.include.includes(layoutName)) &&
-                !config.layouts.exclude.includes(layoutName);
-
-            if (shouldIncludeLayout) {
-                layoutCache[layoutName] = await fs.readFile(`${layoutsDir}/${file}`, 'utf-8');
-                console.log(`Preloaded layout: ${layoutName}`);
-            } else {
-                console.log(`Skipped layout: ${layoutName}`);
-            }
-        }
-    }
-
-    const partialFiles = await fs.readdir(partialsDir);
-    for (const file of partialFiles) {
-        if (file.endsWith('.html')) {
-            const partialName = file.replace('.html', '');
-
-            // Check include/exclude logic for partials
-            const shouldIncludePartial =
-                (config.partials.include.length === 0 || config.partials.include.includes(partialName)) &&
-                !config.partials.exclude.includes(partialName);
-
-            if (shouldIncludePartial) {
-                partialCache[partialName] = await fs.readFile(`${partialsDir}/${file}`, 'utf-8');
-                console.log(`Preloaded partial: ${partialName}`);
-            } else {
-                console.log(`Skipped partial: ${partialName}`);
-            }
-        }
-    }
-}
-
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
@@ -134,7 +93,6 @@ async function renderTemplate(template, context = {}) {
     return template;
 }
 
-
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
     return await renderTemplate(baseTemplate, { ...context, content: templateContent });
@@ -148,11 +106,10 @@ async function generateSingleHTML(title, content, fileName) {
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
 
-
 async function generateIndex(posts) {
     const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
     const indexTemplate = layoutCache['index'] || await readFile(layoutsDir, 'index');
-    const listHTML = await renderTemplate(listTemplate, { posts });
+        const listHTML = await renderTemplate(listTemplate, { posts });
     const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
@@ -185,7 +142,6 @@ async function extractJsonDataFromLayouts() {
 }
 
 // Function to generate Markdown files from JSON data
-// Function to generate Markdown files from JSON data
 async function generateMarkdownFromJson(data) {
     for (const item of data) {
         // Create front matter with only the title
@@ -204,7 +160,6 @@ async function generateMarkdownFromJson(data) {
         console.log(`Created Markdown: ${markdownFilePath}`);
     }
 }
-
 
 // Main content processing function
 async function processContent() {
@@ -240,36 +195,36 @@ async function processContent() {
     const startTime = Date.now(); // Start total build time
 
     // Process all collected markdown files
-// Process all collected markdown files
-for (const file of markdownFiles) {
-    const postStartTime = Date.now(); // Start individual post time
-    const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
-    const { data, content: mdContent } = matter(content);
-    const htmlContent = marked(mdContent);
-    
-    // Pass the file name to generateSingleHTML
-    const html = await generateSingleHTML(data.title, htmlContent, file); 
+    for (const file of markdownFiles) {
+        const postStartTime = Date.now(); // Start individual post time
+        const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
+        const { data, content: mdContent } = matter(content);
+        const htmlContent = marked(mdContent);
+        
+        // Pass the file name to generateSingleHTML
+        const html = await generateSingleHTML(data.title, htmlContent, file); 
 
-    // Ensure the output directory exists
-    const slug = file.replace('.md', '');
-    const outputFilePath = path.join(outputDir, `${slug}.html`);
-    const outputDirPath = path.dirname(outputFilePath);
-    await fs.ensureDir(outputDirPath); // Ensure the directory exists
+        // Ensure the output directory exists
+        const slug = file.replace('.md', '');
+        const outputFilePath = path.join(outputDir, `${slug}.html`);
+        const outputDirPath = path.dirname(outputFilePath);
+        await fs.ensureDir(outputDirPath); // Ensure the directory exists
 
-    await fs.writeFile(outputFilePath, html);
-    
-    // Use the title from front matter or fallback to slug
-    const postTitle = data.title || slug.replace(/-/g, ' '); // Use slug as title if no front matter title
-    posts.push({ title: postTitle, url: `${slug}.html` }); 
+        await fs.writeFile(outputFilePath, html);
+        
+        // Use the title from front matter or fallback to slug
+        const postTitle = data.title || slug.replace(/-/g, ' '); // Use slug as title if no front matter title
+        posts.push({ title: postTitle, url: `${slug}.html` }); 
 
-    const endTime = Date.now();
-    const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
-    console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
-    timings.push(elapsed);
-}
+        const endTime = Date.now();
+        const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
+        console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
+        timings.push(elapsed);
+    }
 
-    
     const indexHTML = await generateIndex(posts);
+    await fs.writeFile(`${outputDir}/index.html
+
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
 
     // Calculate total build time
@@ -284,7 +239,6 @@ for (const file of markdownFiles) {
 // Main SSG execution
 async function runSSG() {
     console.log('--- Starting Static Site Generation ---');
-    await preloadTemplates();
     await processContent();
 }
 
