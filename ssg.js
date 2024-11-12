@@ -2,6 +2,7 @@ const fs = require('fs-extra');
 const marked = require('marked');
 const matter = require('gray-matter');
 const path = require('path');
+const csv = require('csv-parser');
 
 const contentDir = 'content';
 const PrebuildlayoutsDir = 'prebuild/layouts'; // Updated to point to prebuild/layouts
@@ -157,6 +158,67 @@ async function generateIndex(posts) {
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
 
+const csv = require('csv-parser');
+
+// Function to extract data from CSV files
+async function extractCsvDataFromLayouts() {
+    try {
+        const csvFiles = await fs.readdir(dataDir); // Read from dataDir
+        const csvExtractionPromises = csvFiles.map(async (file) => {
+            if (file.endsWith('.csv')) { // Check for CSV file extension
+                try {
+                    const csvFilePath = path.join(dataDir, file);
+                    if (await fs.pathExists(csvFilePath)) {
+                        const csvData = await parseCsv(csvFilePath);
+                        await generateMarkdownFromCsv(csvData); // Generate Markdown directly from CSV data
+                    } else {
+                        console.log(`CSV file not found: ${csvFilePath}`);
+                    }
+                } catch (error) {
+                    console.error(`Error processing file ${file}: ${error.message}`);
+                }
+            }
+        });
+
+        // Wait for all CSV extractions to complete
+        await Promise.all(csvExtractionPromises);
+    } catch (error) {
+        console.error(`Error reading CSV directory: ${error.message}`);
+    }
+}
+
+// Function to parse CSV file
+async function parseCsv(filePath) {
+    return new Promise((resolve, reject) => {
+        const results = [];
+        fs.createReadStream(filePath)
+            .pipe(csv())
+            .on('data', (data) => results.push(data))
+            .on('end', () => resolve(results))
+            .on('error', (error) => reject(error));
+    });
+}
+
+// Function to generate Markdown files from CSV data
+async function generateMarkdownFromCsv(data) {
+    for (const item of data) {
+        // Create front matter with only the title
+        const frontMatter = matter.stringify('', {
+            title: item.title || 'Untitled'
+        });
+
+        const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
+        const markdownFilePath = path.join(contentDir, `${slug}.md`);
+        
+        // Create the Markdown content directly from the CSV data
+        const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`; // Adjust as needed
+
+        await fs.writeFile(markdownFilePath, markdownContent);
+        console.log(`Created Markdown: ${markdownFilePath}`);
+    }
+}
+
+
 // Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
     try {
@@ -209,6 +271,7 @@ async function generateMarkdownFromJson(data) {
 // Main content processing function
 async function processContent() {
     await extractJsonDataFromLayouts(); // Extract JSON data from layouts
+     await extractCsvDataFromLayouts();
     const files = await fs.readdir(contentDir);
 
     // Initialize an array to hold all markdown files
