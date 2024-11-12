@@ -222,10 +222,10 @@ async function fetchCsv(url) {
 async function generateMarkdownFromCsv(data) {
     for (const item of data) {
         const frontMatter = matter.stringify('', {
-            title: item.title || 'Untitled'
+            title: item.Title || 'Untitled'
         });
 
-        const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
+        const slug = (item.Title || 'post').toLowerCase().replace(/\s+/g, '-');
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
