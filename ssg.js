@@ -204,26 +204,31 @@ async function processContent() {
 
     // Initialize an array to hold all markdown files
     const markdownFiles = [];
-        const currentYear = new Date().getFullYear();
-        const processedMdContent = mdContent.replace(/{{\s*currentYear\s*}}/g, currentYear);
+
     // Traverse through the content directory
     for (const file of files) {
-        const fullPath = `${contentDir}/${file}`;
-        const stats = await fs.stat(fullPath);
+        const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
+        const { data, content: mdContent } = matter(content); // Extract front matter and content
 
-        if (stats.isDirectory()) {
-            // If it's a directory, read its contents
-            const nestedFiles = await fs.readdir(fullPath);
-            nestedFiles.forEach(nestedFile => {
-                if (nestedFile.endsWith('.md')) {
-                    markdownFiles.push(`${file}/${nestedFile}`);
-                }
-            });
-        } else if (stats.isFile() && file.endsWith('.md')) {
-            // If it's a file and ends with .md, add it to the list
-            markdownFiles.push(file);
-        }
+        // Get the current year
+        const currentYear = new Date().getFullYear();
+
+        // Preprocess to replace {{ currentYear }} with the actual year
+        const processedMdContent = mdContent.replace(/{{\s*currentYear\s*}}/g, currentYear);
+
+        // Convert the processed Markdown content to HTML
+        const htmlContent = marked(processedMdContent);
+        
+        // Generate the final HTML with the layout
+        const html = await generateSingleHTML(data.title, htmlContent, file);
+
+        // Write the output as usual
+        const slug = file.replace('.md', '');
+        const outputFilePath = path.join(outputDir, `${slug}.html`);
+        await fs.writeFile(outputFilePath, html);
     }
+}
+
 
     await fs.ensureDir(outputDir);
 
