@@ -87,7 +87,9 @@ async function preloadTemplates() {
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
-   
+
+    context.currentYear = new Date().getFullYear();
+    
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
@@ -115,25 +117,14 @@ async function renderTemplate(template, context = {}) {
         template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
     }
 
-    context.currentYear = new Date().getFullYear();
-    
-console.log("Before replacement:", template);
-
     const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
-    console.log("Variable Matches:", variableMatches);
-
     for (const match of variableMatches) {
-        const [fullMatch, key] = match;
-        console.log(`Replacing ${fullMatch} with ${context[key] || ''}`);
+        const [fullMatch, key] =         match;
         template = template.replace(fullMatch, context[key] || '');
     }
 
-    // Log the template after replacement
-    console.log("After replacement:", template);
-    
     return template;
 }
-
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
