@@ -4,6 +4,7 @@ const matter = require('gray-matter');
 const path = require('path');
 const csv = require('csv-parser');
 const axios = require('axios');
+const { Readable } = require('stream');
 
 const contentDir = 'content';
 const PrebuildlayoutsDir = 'prebuild/layouts'; // Updated to point to prebuild/layouts
@@ -203,11 +204,14 @@ async function fetchCsv(url) {
 }
 
 // Function to parse CSV file
-async function parseCsv(filePath) {
+async function fetchCsv(url) {
+    const response = await axios.get(url, { responseType: 'stream' });
+    const results = [];
+    
     return new Promise((resolve, reject) => {
-        const results = [];
-        fs.createReadStream(filePath)
-            .pipe(csv())
+        const csvStream = response.data.pipe(csv());
+        
+        csvStream
             .on('data', (data) => results.push(data))
             .on('end', () => resolve(results))
             .on('error', (error) => reject(error));
