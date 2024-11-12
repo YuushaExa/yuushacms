@@ -3,6 +3,7 @@ const marked = require('marked');
 const matter = require('gray-matter');
 const path = require('path');
 const csv = require('csv-parser');
+const axios = require('axios');
 
 const contentDir = 'content';
 const PrebuildlayoutsDir = 'prebuild/layouts'; // Updated to point to prebuild/layouts
@@ -166,35 +167,39 @@ async function generateIndex(posts) {
 // Function to extract data from CSV files
 async function extractCsvDataFromLayouts() {
     try {
-        const csvFiles = await fs.readdir(dataDir);
-        const csvExtractionPromises = csvFiles.map(async (file) => {
-            if (file.endsWith('.csv')) {
-                const shouldIncludeCsv = 
-                    (config.csv.include.length === 0 || config.csv.include.includes(file)) &&
-                    !config.csv.exclude.includes(file);
-
-                if (shouldIncludeCsv) {
-                    try {
-                        const csvFilePath = path.join(dataDir, file);
-                        if (await fs.pathExists(csvFilePath)) {
-                            const csvData = await parseCsv(csvFilePath);
-                            await generateMarkdownFromCsv(csvData);
-                        } else {
-                            console.log(`CSV file not found: ${csvFilePath}`);
-                        }
-                    } catch (error) {
-                        console.error(`Error processing file ${file}: ${error.message}`);
-                    }
-                } else {
-                    console.log(`Skipped CSV file: ${file}`);
+        const csvFiles = config.csv.include; // Use the URLs from the config
+        const csvExtractionPromises = csvFiles.map(async (url) => {
+            if (url.endsWith('.csv')) {
+                try {
+                    const csvData = await fetchCsv(url);
+                    await generateMarkdownFromCsv(csvData); // Generate Markdown directly from CSV data
+                } catch (error) {
+                    console.error(`Error processing CSV from URL ${url}: ${error.message}`);
                 }
             }
         });
 
+        // Wait for all CSV extractions to complete
         await Promise.all(csvExtractionPromises);
     } catch (error) {
-        console.error(`Error reading CSV directory: ${error.message}`);
+        console.error(`Error reading CSV URLs: ${error.message}`);
     }
+}
+
+// Function to fetch CSV data from a URL
+async function fetchCsv(url) {
+    const response = await axios.get(url);
+    const results = [];
+    return new Promise((resolve, reject) => {
+        const csvStream = csv();
+        csvStream
+            .on('data', (data) => results.push(data))
+            .on('end', () => resolve(results))
+            .on('error', (error) => reject(error));
+        
+        // Pipe the response data into the CSV parser
+        response.data.pipe(csvStream);
+    });
 }
 
 // Function to parse CSV file
@@ -228,27 +233,14 @@ async function generateMarkdownFromCsv(data) {
 // Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
     try {
-        const jsonFiles = await fs.readdir(dataDir);
-        const jsonExtractionPromises = jsonFiles.map(async (file) => {
-            if (file.endsWith('.json')) {
-                const shouldIncludeJson = 
-                    (config.json.include.length === 0 || config.json.include.includes(file)) &&
-                    !config.json.exclude.includes(file);
-
-                if (shouldIncludeJson) {
-                    try {
-                        const jsonFilePath = path.join(dataDir, file);
-                        if (await fs.pathExists(jsonFilePath)) {
-                            const jsonData = await fs.readJSON(jsonFilePath);
-                            await generateMarkdownFromJson(jsonData);
-                        } else {
-                            console.log(`JSON file not found: ${jsonFilePath}`);
-                        }
-                    } catch (error) {
-                        console.error(`Error processing JSON file ${file}: ${error.message}`);
-                    }
-                } else {
-                    console.log(`Skipped JSON file: ${file}`);
+        const jsonFiles = config.json.include; // Use the URLs from the config
+        const jsonExtractionPromises = jsonFiles.map(async (url) => {
+            if (url.endsWith('.json')) {
+                try {
+                    const jsonData = await fetchJson(url);
+                    await generateMarkdownFromJson(jsonData); // Generate Markdown directly from JSON data
+                } catch (error) {
+                    console.error(`Error processing JSON from URL ${url}: ${error.message}`);
                 }
             }
         });
@@ -256,8 +248,14 @@ async function extractJsonDataFromLayouts() {
         // Wait for all JSON extractions to complete
         await Promise.all(jsonExtractionPromises);
     } catch (error) {
-        console.error(`Error reading JSON directory: ${error.message}`);
+        console.error(`Error reading JSON URLs: ${error.message}`);
     }
+}
+
+// Function to fetch JSON data from a URL
+async function fetchJson(url) {
+    const response = await axios.get(url);
+    return response.data; // Return the JSON data
 }
 
 
