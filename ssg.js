@@ -230,7 +230,6 @@ async function generateMarkdownFromCsv(data) {
         
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
         await fs.writeFile(markdownFilePath, markdownContent);
-        console.log(`Created Markdown: ${markdownFilePath}`);
     }
 }
 
@@ -275,7 +274,6 @@ async function generateMarkdownFromJson(data) {
         
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
         await fs.writeFile(markdownFilePath, markdownContent);
-        console.log(`Created Markdown: ${markdownFilePath}`);
     }
 }
 
