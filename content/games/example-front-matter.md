@@ -27,4 +27,3 @@ Thank you for reading!
 </div>
 
 create  mapping on single page
-{{ currentYear }}
