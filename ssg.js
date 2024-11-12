@@ -226,10 +226,7 @@ async function generateMarkdownFromCsv(data) {
         });
 
         const slug = (item.Title || 'post')
-            .toLowerCase()
-            .replace(/[^a-z0-9-]/g, '-') // Sanitize slug
-            .replace(/--+/g, '-') // Replace multiple dashes with a single dash
-            .replace(/^-|-$/g, ''); // Remove leading and trailing dashes
+
 
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
