@@ -29,3 +29,4 @@ Thank you for reading!
 create  mapping on single page 
 
 remove way to enter in MD files
+ {{ currentYear }}
