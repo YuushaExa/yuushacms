@@ -115,13 +115,13 @@ async function renderTemplate(template, context = {}) {
         template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
     }
 
+    context.currentYear = new Date().getFullYear();
+    
     const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
     for (const match of variableMatches) {
         const [fullMatch, key] =         match;
         template = template.replace(fullMatch, context[key] || '');
     }
-
-    context.currentYear = new Date().getFullYear();
     
     return template;
 }
