@@ -10,17 +10,6 @@ const dataDir = 'prebuild/data'; // Directory for JSON data sources
 const partialsDir = 'partials';
 const layoutsDir = 'layouts'; 
 
-const config = {
-    layouts: {
-        include: [], // Specify layouts to include, e.g., 'base', 'single', 'list'
-        exclude: []  // Specify layouts to exclude
-    },
-    partials: {
-        include: [], // Specify partials to include
-        exclude: []  // Specify partials to exclude
-    }
-};
-
 // Function to read a file from a directory
 async function readFile(dir, name) {
     const filePath = `${dir}/${name}.html`;
