@@ -235,8 +235,7 @@ async function generateMarkdownFromCsv(data) {
         
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
         
-        // Ensure the directory exists
-        await fs.ensureDir(path.dirname(markdownFilePath)); 
+  
 
         try {
             await fs.writeFile(markdownFilePath, markdownContent);
