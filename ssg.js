@@ -126,7 +126,7 @@ async function renderTemplate(template, context = {}) {
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
-    return await renderTemplate(baseTemplate, { ...context, content: templateContent, context.currentYear = new Date().getFullYear(); });
+    return await renderTemplate(baseTemplate, { ...context, content: templateContent, currentYear: new Date().getFullYear() });
 }
 
 async function generateSingleHTML(title, content, fileName) {
