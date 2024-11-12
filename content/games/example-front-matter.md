@@ -26,5 +26,6 @@ Thank you for reading!
   {{ content }}
 </div>
 
-create  mapping on single page {{ currentYear }} 
+create  mapping on single page 
 
+{{ currentYear }}  remove way to enter {{ currentYear }} in MD files
