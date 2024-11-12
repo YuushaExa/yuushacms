@@ -28,4 +28,4 @@ Thank you for reading!
 
 create  mapping on single page 
 
-{{ currentYear }}  remove way to enter {{ currentYear }} in MD files
+{{ currentYear }}  remove way to enter in MD files
