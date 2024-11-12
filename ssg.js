@@ -10,7 +10,6 @@ const dataDir = 'prebuild/data'; // Directory for JSON data sources
 const partialsDir = 'partials';
 const layoutsDir = 'layouts'; 
 
-// Configuration for layouts and partials
 const config = {
     layouts: {
         include: [], // Specify layouts to include, e.g., 'base', 'single', 'list'
