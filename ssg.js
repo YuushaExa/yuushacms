@@ -225,12 +225,12 @@ async function generateMarkdownFromCsv(data) {
             title: item.Title || 'Untitled'
         });
 
-        const title = item.Title || 'post';
-const slug = title
+       const title = item.Title || 'post';
+let slug = title
     .toLowerCase()
     .trim() // Remove leading and trailing whitespace
     .replace(/\s+/g, '-') // Replace spaces with dashes
-    .replace(/[^a-z0-9-]/g, '-') // Sanitize slug
+    .replace(/[^a-z0-9-'’]/g, '-') // Sanitize slug, allowing apostrophes
     .replace(/--+/g, '-') // Replace multiple dashes with a single dash
     .replace(/^-|-$/g, ''); // Remove leading and trailing dashes
 
@@ -238,6 +238,7 @@ if (!slug) {
     console.warn('Generated slug is empty, using default "post"');
     slug = 'post'; // Fallback to 'post' if slug is empty
 }
+
 
 
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
