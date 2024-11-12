@@ -223,8 +223,6 @@ async function processContent() {
     }
 
     const indexHTML = await generateIndex(posts);
-    await fs.writeFile(`${outputDir}/index.html
-
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
 
     // Calculate total build time
