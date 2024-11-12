@@ -11,7 +11,7 @@ const dataDir = 'prebuild/data'; // Directory for JSON data sources
 const partialsDir = 'partials';
 const layoutsDir = 'layouts'; 
 
-// Configuration for layouts and partials
+// Configuration for layouts, partials, JSON, and CSV
 const config = {
     layouts: {
         include: [], // Specify layouts to include, e.g., 'base', 'single', 'list'
@@ -20,6 +20,14 @@ const config = {
     partials: {
         include: [], // Specify partials to include
         exclude: []  // Specify partials to exclude
+    },
+    json: {
+        include: [], // Specify JSON files to include
+        exclude: []   // Specify JSON files to exclude
+    },
+    csv: {
+        include: [], // Specify CSV files to include
+        exclude: []   // Specify CSV files to exclude
     }
 };
 
@@ -112,7 +120,7 @@ async function renderTemplate(template, context = {}) {
             const renderedItems = await Promise.all(
                 items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
             );
-            template = template.replace(fullMatch, renderedItems.join(''));
+                       template = template.replace(fullMatch, renderedItems.join(''));
         } else {
             template = template.replace(fullMatch, '');
         }
@@ -135,20 +143,17 @@ async function renderTemplate(template, context = {}) {
     return template;
 }
 
-
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
     return await renderTemplate(baseTemplate, { ...context, content: templateContent });
 }
 
 async function generateSingleHTML(title, content, fileName) {
-    // Use the file name as the title if the provided title is empty
-    const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' '); // Replace hyphens with spaces for better readability
+    const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' ');
     const singleTemplate = layoutCache['single'] || await readFile(layoutsDir, 'single');
     const renderedContent = await renderTemplate(singleTemplate, { title: finalTitle, content });
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
-
 
 async function generateIndex(posts) {
     const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
@@ -158,28 +163,34 @@ async function generateIndex(posts) {
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
 
-
 // Function to extract data from CSV files
 async function extractCsvDataFromLayouts() {
     try {
-        const csvFiles = await fs.readdir(dataDir); // Read from dataDir
+        const csvFiles = await fs.readdir(dataDir);
         const csvExtractionPromises = csvFiles.map(async (file) => {
-            if (file.endsWith('.csv')) { // Check for CSV file extension
-                try {
-                    const csvFilePath = path.join(dataDir, file);
-                    if (await fs.pathExists(csvFilePath)) {
-                        const csvData = await parseCsv(csvFilePath);
-                        await generateMarkdownFromCsv(csvData); // Generate Markdown directly from CSV data
-                    } else {
-                        console.log(`CSV file not found: ${csvFilePath}`);
+            if (file.endsWith('.csv')) {
+                const shouldIncludeCsv = 
+                    (config.csv.include.length === 0 || config.csv.include.includes(file)) &&
+                    !config.csv.exclude.includes(file);
+
+                if (shouldIncludeCsv) {
+                    try {
+                        const csvFilePath = path.join(dataDir, file);
+                        if (await fs.pathExists(csvFilePath)) {
+                            const csvData = await parseCsv(csvFilePath);
+                            await generateMarkdownFromCsv(csvData);
+                        } else {
+                            console.log(`CSV file not found: ${csvFilePath}`);
+                        }
+                    } catch (error) {
+                        console.error(`Error processing file ${file}: ${error.message}`);
                     }
-                } catch (error) {
-                    console.error(`Error processing file ${file}: ${error.message}`);
+                } else {
+                    console.log(`Skipped CSV file: ${file}`);
                 }
             }
         });
 
-        // Wait for all CSV extractions to complete
         await Promise.all(csvExtractionPromises);
     } catch (error) {
         console.error(`Error reading CSV directory: ${error.message}`);
@@ -201,7 +212,6 @@ async function parseCsv(filePath) {
 // Function to generate Markdown files from CSV data
 async function generateMarkdownFromCsv(data) {
     for (const item of data) {
-        // Create front matter with only the title
         const frontMatter = matter.stringify('', {
             title: item.title || 'Untitled'
         });
@@ -209,31 +219,33 @@ async function generateMarkdownFromCsv(data) {
         const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
-        // Create the Markdown content directly from the CSV data
-        const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`; // Adjust as needed
-
+        const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
         await fs.writeFile(markdownFilePath, markdownContent);
         console.log(`Created Markdown: ${markdownFilePath}`);
     }
 }
 
-
 // Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
     try {
-        const jsonFiles = await fs.readdir(dataDir); // Read from dataDir
+        const jsonFiles = await fs.readdir(dataDir);
         const jsonExtractionPromises = jsonFiles.map(async (file) => {
-            if (file.endsWith('.json')) { // Check for JSON file extension
-                try {
+            if (file.endsWith('.json')) {
+                const shouldIncludeJson = 
+                    (config.json.include.length === 0 || config.json.include.includes(file)) &&
+                    !config.json.exclude.includes(file);
+
+                if (shouldIncludeJson) {
+                    try {
                     const jsonFilePath = path.join(dataDir, file);
                     if (await fs.pathExists(jsonFilePath)) {
                         const jsonData = await fs.readJSON(jsonFilePath);
-                        await generateMarkdownFromJson(jsonData); // Generate Markdown directly from JSON data
+                        await generateMarkdownFromJson(jsonData);
                     } else {
                         console.log(`JSON file not found: ${jsonFilePath}`);
                     }
-                } catch (error) {
-                    console.error(`Error processing file ${file}: ${error.message}`);
+                } else {
+                    console.log(`Skipped JSON file: ${file}`);
                 }
             }
         });
@@ -246,10 +258,8 @@ async function extractJsonDataFromLayouts() {
 }
 
 // Function to generate Markdown files from JSON data
-// Function to generate Markdown files from JSON data
 async function generateMarkdownFromJson(data) {
     for (const item of data) {
-        // Create front matter with only the title
         const frontMatter = matter.stringify('', {
             title: item.title || 'Untitled'
         });
@@ -257,20 +267,16 @@ async function generateMarkdownFromJson(data) {
         const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
-        // Create the Markdown content directly from the JSON data
-        // Include the rest of the JSON data directly in the content
-        const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`; // Adjust as needed
-
+        const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
         await fs.writeFile(markdownFilePath, markdownContent);
         console.log(`Created Markdown: ${markdownFilePath}`);
     }
 }
 
-
 // Main content processing function
 async function processContent() {
     await extractJsonDataFromLayouts(); // Extract JSON data from layouts
-     await extractCsvDataFromLayouts();
+    await extractCsvDataFromLayouts(); // Extract CSV data from layouts
     const files = await fs.readdir(contentDir);
 
     // Initialize an array to hold all markdown files
@@ -302,35 +308,33 @@ async function processContent() {
     const startTime = Date.now(); // Start total build time
 
     // Process all collected markdown files
-// Process all collected markdown files
-for (const file of markdownFiles) {
-    const postStartTime = Date.now(); // Start individual post time
-    const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
-    const { data, content: mdContent } = matter(content);
-    const htmlContent = marked(mdContent);
-    
-    // Pass the file name to generateSingleHTML
-    const html = await generateSingleHTML(data.title, htmlContent, file); 
+    for (const file of markdownFiles) {
+        const postStartTime = Date.now(); // Start individual post time
+        const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
+        const { data, content: mdContent } = matter(content);
+        const htmlContent = marked(mdContent);
+        
+        // Pass the file name to generateSingleHTML
+        const html = await generateSingleHTML(data.title, htmlContent, file); 
 
-    // Ensure the output directory exists
-    const slug = file.replace('.md', '');
-    const outputFilePath = path.join(outputDir, `${slug}.html`);
-    const outputDirPath = path.dirname(outputFilePath);
-    await fs.ensureDir(outputDirPath); // Ensure the directory exists
+        // Ensure the output directory exists
+        const slug = file.replace('.md', '');
+        const outputFilePath = path.join(outputDir, `${slug}.html`);
+        const outputDirPath = path.dirname(outputFilePath);
+        await fs.ensureDir(outputDirPath); // Ensure the directory exists
 
-    await fs.writeFile(outputFilePath, html);
-    
-    // Use the title from front matter or fallback to slug
-    const postTitle = data.title || slug.replace(/-/g, ' '); // Use slug as title if no front matter title
-    posts.push({ title: postTitle, url: `${slug}.html` }); 
+        await fs.writeFile(outputFilePath, html);
+        
+        // Use the title from front matter or fallback to slug
+        const postTitle = data.title || slug.replace(/-/g, ' '); // Use slug as title if no front matter title
+        posts.push({ title: postTitle, url: `${slug}.html` }); 
 
-    const endTime = Date.now();
-    const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
-    console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
-    timings.push(elapsed);
-}
+        const endTime = Date.now();
+        const elapsed = ((endTime - postStartTime) / 1000).toFixed(4);
+        console.log(`Generated: ${slug}.html in ${elapsed} seconds`);
+        timings.push(elapsed);
+    }
 
-    
     const indexHTML = await generateIndex(posts);
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
 
@@ -350,4 +354,7 @@ async function runSSG() {
     await processContent();
 }
 
-runSSG();
+// Execute the static site generator
+runSSG().catch(error => {
+    console.error('Error during static site generation:', error);
+});
