@@ -204,7 +204,8 @@ async function processContent() {
 
     // Initialize an array to hold all markdown files
     const markdownFiles = [];
-
+        const currentYear = new Date().getFullYear();
+        const processedMdContent = mdContent.replace(/{{\s*currentYear\s*}}/g, currentYear);
     // Traverse through the content directory
     for (const file of files) {
         const fullPath = `${contentDir}/${file}`;
