@@ -223,10 +223,10 @@ async function generateMarkdownFromCsv(data) {
     for (const item of data) {
         // Create front matter with only the title
         const frontMatter = matter.stringify('', {
-            title: item.title || 'Untitled'
+            title: item.Title || 'Untitled'
         });
 
-        const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
+        const slug = (item.Title || 'post').toLowerCase().replace(/\s+/g, '-');
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
         // Create the Markdown content directly from the CSV data
