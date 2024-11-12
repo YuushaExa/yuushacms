@@ -21,22 +21,12 @@ const config = {
     }
 };
 
-const layoutCache = {};
-const partialCache = {};
-
-// Function to read a file from a directory with caching
+// Function to read a file from a directory
 async function readFile(dir, name) {
-    const cache = dir === layoutsDir ? layoutCache : partialCache;
     const filePath = `${dir}/${name}.html`;
 
-    if (cache[name]) {
-        return cache[name];
-    }
-
     if (await fs.pathExists(filePath)) {
-        const content = await fs.readFile(filePath, 'utf-8');
-        cache[name] = content;
-        return content;
+        return await fs.readFile(filePath, 'utf-8');
     }
 
     return '';
@@ -52,7 +42,7 @@ async function renderTemplate(template, context = {}) {
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
-        const partialContent = partialCache[partialName] || await readFile(partialsDir, partialName);
+        const partialContent = await readFile(partialsDir, partialName);
         if (partialContent) {
             template = template.replace(fullMatch, partialContent);
         } else {
@@ -93,22 +83,21 @@ async function renderTemplate(template, context = {}) {
 }
 
 async function renderWithBase(templateContent, context = {}) {
-    const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
+    const baseTemplate = await readFile(layoutsDir, 'base');
     return await renderTemplate(baseTemplate, { ...context, content: templateContent });
 }
 
 async function generateSingleHTML(title, content, fileName) {
-    // Use the file name as the title if the provided title is empty
-    const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' '); // Replace hyphens with spaces for better readability
-    const singleTemplate = layoutCache['single'] || await readFile(layoutsDir, 'single');
+    const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' ');
+    const singleTemplate = await readFile(layoutsDir, 'single');
     const renderedContent = await renderTemplate(singleTemplate, { title: finalTitle, content });
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
 
 async function generateIndex(posts) {
-    const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
-    const indexTemplate = layoutCache['index'] || await readFile(layoutsDir, 'index');
-        const listHTML = await renderTemplate(listTemplate, { posts });
+    const listTemplate = await readFile(layoutsDir, 'list');
+    const indexTemplate = await readFile(layoutsDir, 'index');
+    const listHTML = await renderTemplate(listTemplate, { posts });
     const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
@@ -116,12 +105,12 @@ async function generateIndex(posts) {
 // Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
     try {
-        const jsonFiles = await fs.readdir(dataDir); // Read from dataDir
+        const jsonFiles = await fs.readdir(dataDir);
         const jsonExtractionPromises = jsonFiles.map(async (file) => {
-            if (file.endsWith('.json')) { // Check for JSON file extension
+            if (file.endsWith('.json')) {
                 try {
                     const jsonFilePath = path.join(dataDir, file);
-                    if (await fs.pathExists(jsonFilePath)) {
+                                      if (await fs.pathExists(jsonFilePath)) {
                         const jsonData = await fs.readJSON(jsonFilePath);
                         await generateMarkdownFromJson(jsonData); // Generate Markdown directly from JSON data
                     } else {
@@ -152,7 +141,6 @@ async function generateMarkdownFromJson(data) {
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
         // Create the Markdown content directly from the JSON data
-        // Include the rest of the JSON data directly in the content
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`; // Adjust as needed
 
         await fs.writeFile(markdownFilePath, markdownContent);
@@ -238,5 +226,4 @@ async function runSSG() {
     console.log('--- Starting Static Site Generation ---');
     await processContent();
 }
-
 runSSG();
