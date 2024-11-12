@@ -237,12 +237,15 @@ async function extractJsonDataFromLayouts() {
 
                 if (shouldIncludeJson) {
                     try {
-                    const jsonFilePath = path.join(dataDir, file);
-                    if (await fs.pathExists(jsonFilePath)) {
-                        const jsonData = await fs.readJSON(jsonFilePath);
-                        await generateMarkdownFromJson(jsonData);
-                    } else {
-                        console.log(`JSON file not found: ${jsonFilePath}`);
+                        const jsonFilePath = path.join(dataDir, file);
+                        if (await fs.pathExists(jsonFilePath)) {
+                            const jsonData = await fs.readJSON(jsonFilePath);
+                            await generateMarkdownFromJson(jsonData);
+                        } else {
+                            console.log(`JSON file not found: ${jsonFilePath}`);
+                        }
+                    } catch (error) {
+                        console.error(`Error processing JSON file ${file}: ${error.message}`);
                     }
                 } else {
                     console.log(`Skipped JSON file: ${file}`);
@@ -256,6 +259,7 @@ async function extractJsonDataFromLayouts() {
         console.error(`Error reading JSON directory: ${error.message}`);
     }
 }
+
 
 // Function to generate Markdown files from JSON data
 async function generateMarkdownFromJson(data) {
