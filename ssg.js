@@ -249,7 +249,6 @@ if (!slug) {
 
         try {
             await fs.writeFile(markdownFilePath, markdownContent);
-            console.log(`Created Markdown: ${markdownFilePath}`);
         } catch (error) {
             console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
         }
