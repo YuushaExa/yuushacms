@@ -87,9 +87,7 @@ async function preloadTemplates() {
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
-
-    context.currentYear = new Date().getFullYear();
-    
+   
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
         const [fullMatch, partialName] = match;
@@ -123,6 +121,8 @@ async function renderTemplate(template, context = {}) {
         template = template.replace(fullMatch, context[key] || '');
     }
 
+    context.currentYear = new Date().getFullYear();
+    
     return template;
 }
 
