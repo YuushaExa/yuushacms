@@ -220,13 +220,21 @@ async function fetchCsv(url) {
 
 // Function to sanitize the slug for file names
 function sanitizeSlug(slug, maxLength = 50) {
-    // Convert to lowercase and replace invalid characters
-    slug = slug
-        .toLowerCase()
-        .replace(/[\s]+/g, '-') // Replace spaces with hyphens
-        .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
-        .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-        .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
+    // Check if the slug can be processed (contains only Latin characters and spaces)
+    const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
+
+    if (isLatin) {
+        // Process the slug if it contains only Latin characters
+        slug = slug
+            .toLowerCase()
+            .replace(/[\s]+/g, '-') // Replace spaces with hyphens
+            .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
+            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+            .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
+    } else {
+        // Use encodeURI for non-Latin characters
+        slug = encodeURI(slug);
+    }
 
     // Trim to maxLength if necessary
     if (slug.length > maxLength) {
