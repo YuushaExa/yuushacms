@@ -219,9 +219,6 @@ async function fetchCsv(url) {
 }
 
 // Function to generate Markdown files from CSV data
-const fs = require('fs').promises; // Ensure you have the correct fs import
-const path = require('path');
-const matter = require('gray-matter'); // Ensure you have the correct matter import
 
 async function generateMarkdownFromCsv(data, contentDir) {
     let postCounter = 1; // Initialize a counter for posts
