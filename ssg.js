@@ -289,9 +289,10 @@ async function fetchJson(url) {
 function sanitizeSlug(slug) {
     return slug
         .toLowerCase()
-        .replace(/[^a-z0-9-]/g, '-') // Replace invalid characters with '-'
-        .replace(/--+/g, '-') // Replace multiple dashes with a single dash
-        .replace(/^-|-$/g, ''); // Remove leading and trailing dashes
+           .replace(/\s+/g, '-') // Replace spaces with hyphens
+            .replace(/[^\p{L}\d\-:'()]/gu, '-') // Allow letters (including non-ASCII), digits, hyphens, colons, apostrophes, and parentheses
+            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+            .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
 }
 
 // Function to generate Markdown files from JSON data
