@@ -244,7 +244,7 @@ async function generateMarkdownFromCsv(data, contentDir) {
         } else {
             // Check if the slug already exists and increment the counter if it does
             let originalSlug = slug;
-            while (await fs.access(path.join(contentDir, `${slug}.md")).then(() => true).catch(() => false)) {
+            while (await fs.access(path.join(contentDir, `${slug}.md`)).then(() => true).catch(() => false)) {
                 slug = `${originalSlug}-PostFix-${postCounter++}`; // Append PostFix and increment counter
             }
         }
@@ -259,7 +259,6 @@ async function generateMarkdownFromCsv(data, contentDir) {
         }
     }
 }
-
 
 // Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
