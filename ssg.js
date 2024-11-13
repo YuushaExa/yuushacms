@@ -222,20 +222,14 @@ async function fetchCsv(url) {
 
 async function generateMarkdownFromCsv(data) {
     let postCounter = 1; // Initialize a counter for posts
-    const skippedPosts = []; // Array to hold skipped post titles
+    const problematicTitles = []; // Array to store titles that cause problems
 
     for (const item of data) {
-        const title = item.Title || 'Untitled';
-        if (title === 'Untitled') {
-            skippedPosts.push('Untitled post'); // Log skipped post with no title
-            console.warn(`Skipped post: ${title}`);
-            continue; // Skip to the next iteration
-        }
-
         const frontMatter = matter.stringify('', {
-            title: title
+            title: item.Title || 'Untitled'
         });
 
+        const title = item.Title || 'post';
         let slug = title
             .toLowerCase()
             .trim()
@@ -244,9 +238,10 @@ async function generateMarkdownFromCsv(data) {
             .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
             .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
 
-        // Fallback for empty slug
+        // Check for empty slug and log problematic titles
         if (!slug) {
-            console.warn('Generated slug is empty, using default "post"');
+            console.warn(`Generated slug is empty for title: "${title}", using default "post-${postCounter}"`);
+            problematicTitles.push(title); // Log the problematic title
             slug = `post-${postCounter}`; // Use counter to create a unique slug
             postCounter++; // Increment the counter
         }
@@ -256,16 +251,20 @@ async function generateMarkdownFromCsv(data) {
 
         try {
             await fs.writeFile(markdownFilePath, markdownContent);
+            console.log(`Created Markdown file: ${markdownFilePath}`);
         } catch (error) {
             console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
         }
     }
 
-    // Log skipped posts at the end
-    if (skippedPosts.length > 0) {
-        console.log('Skipped posts:', skippedPosts);
+    // Log all problematic titles at the end
+    if (problematicTitles.length > 0) {
+        console.log('Problematic titles that generated empty slugs:');
+        problematicTitles.forEach(title => console.log(`- "${title}"`));
     }
 }
+
+
 
 // Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
