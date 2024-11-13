@@ -219,35 +219,14 @@ async function fetchCsv(url) {
 }
 
 // Function to sanitize the slug for file names
-function sanitizeSlug(slug, maxLength = 50, replacementChar = '-') {
-    // Check if the slug is empty or invalid
-    if (!slug || typeof slug !== 'string') {
-        console.error('Error: Invalid slug input. Skipping sanitization.');
-        return { original: slug, sanitized: '' }; // Return an object with original and sanitized
-    }
-
-    // Convert to lowercase and encode the slug
-    slug = encodeURIComponent(slug.toLowerCase());
-
-    // Replace spaces and invalid characters with the specified replacement character
-    slug = slug.replace(/%20/g, replacementChar) // Replace encoded spaces
-               .replace(/[^\w-]+/g, replacementChar) // Replace invalid characters
-               .replace(new RegExp(`${replacementChar}{2,}`, 'g'), replacementChar) // Replace multiple replacements
-               .replace(new RegExp(`^${replacementChar}+|${replacementChar}+$`, 'g'), ''); // Trim replacements
-
-    // Truncate the slug to the maximum length
-    if (slug.length > maxLength) {
-        slug = slug.substring(0, maxLength);
-    }
-
-    return { original: slug, sanitized: slug }; // Return an object with original and sanitized
+function sanitizeSlug(slug, maxLength = 50) {
+    slug = encodeURIComponent(slug.toLowerCase())
+        .replace(/%20/g, '-') // Replace encoded spaces with hyphens
+        .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
+        .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+        .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
+    return slug.length > maxLength ? slug.substring(0, maxLength) : slug;
 }
-
-// Example usage
-const result = sanitizeSlug("Hello World! This is a test slug.", 30);
-console.log(result);
-
-
 
 // Function to generate Markdown files from CSV data
 
