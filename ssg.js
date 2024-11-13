@@ -222,13 +222,25 @@ async function fetchCsv(url) {
 
 async function generateMarkdownFromCsv(data) {
     let postCounter = 1; // Initialize a counter for posts
+    const invalidTitles = []; // Array to hold titles that couldn't be parsed
 
     for (const item of data) {
+        const title = item.Title || 'post'; // Default to 'post' if Title is missing
+
+        // Regex to validate the title (you can adjust this regex as needed)
+        const titleRegex = /^[a-zA-Z0-9\s'’]+$/; // Example regex: allows letters, numbers, spaces, and apostrophes
+
+        // Check if the title is valid
+        if (!titleRegex.test(title)) {
+            console.warn(`Invalid title found: "${title}"`);
+            invalidTitles.push(title); // Log the invalid title
+            continue; // Skip this iteration
+        }
+
         const frontMatter = matter.stringify('', {
-            title: item.Title || 'Untitled'
+            title: title
         });
 
-        const title = item.Title || 'post';
         let slug = title
             .toLowerCase()
             .trim()
@@ -249,11 +261,23 @@ async function generateMarkdownFromCsv(data) {
 
         try {
             await fs.writeFile(markdownFilePath, markdownContent);
+            console.log(`Created Markdown file: ${markdownFilePath}`);
         } catch (error) {
             console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
         }
     }
+
+    // Log all invalid titles at the end
+    if (invalidTitles.length > 0) {
+        console.log('--- Invalid Titles ---');
+        invalidTitles.forEach(title => {
+            console.log(`- ${title}`);
+        });
+    } else {
+        console.log('All titles were valid.');
+    }
 }
+
 
 
 // Function to extract JSON data from layout files
