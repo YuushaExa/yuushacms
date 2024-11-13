@@ -224,30 +224,29 @@ async function generateMarkdownFromCsv(data, contentDir) {
     let postCounter = 1; // Initialize a counter for posts
     const failedSlugs = []; // Array to store records with failed slug generation
 
-    for (const item of data) {
+      for (const item of data) {
         const frontMatter = matter.stringify('', {
             title: item.Title || 'Untitled'
         });
 
         const title = item.Title || 'post';
-        let slug = title
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-') // Replace spaces with hyphens
-            .replace(/[^a-z0-9\-:'()]/g, '-') // Allow letters, numbers, hyphens, colons, apostrophes, and parentheses
-            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-            .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
+      let slug = title
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/[^a-z0-9\-:'()]/g, '-') // Allow letters, numbers, hyphens, colons, apostrophes, and parentheses
+    .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+    .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
 
-        // Fallback for empty slug
-        if (!slug) {
-            console.warn('Generated slug is empty, using default "post"');
-            slug = `post-${postCounter}`; // Use counter to create a unique slug
-            postCounter++; // Increment the counter
-            failedSlugs.push(item); // Log the item that failed to generate a valid slug
-        }
-
-        const markdownFilePath = path.join(contentDir, `${slug}.md`);
+// Fallback for empty slug
+if (!slug) {
+    console.warn('Generated slug is empty, using default "post"');
+    slug = `post-${postCounter}`; // Use counter to create a unique slug
+    postCounter++; // Increment the counter
+}
+      const markdownFilePath = path.join(contentDir, `${slug}.md`);
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
+
 
         try {
             await fs.writeFile(markdownFilePath, markdownContent);
