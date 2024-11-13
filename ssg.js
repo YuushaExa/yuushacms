@@ -224,7 +224,7 @@ function sanitizeSlug(slug, maxLength = 200) {
     slug = slug.toLowerCase().replace(/\s+/g, '-');
 
     // Encode the slug
-    slug = encodeURIComponent(slug);
+    slug = encodeURI(slug);
 
 
     // Truncate the slug to the maximum length
