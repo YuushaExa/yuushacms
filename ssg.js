@@ -219,14 +219,25 @@ async function fetchCsv(url) {
 }
 
 // Function to sanitize the slug for file names
-function sanitizeSlug(slug) {
-    slug = slug.toLowerCase().replace(/\s+/g, '-'); // Replace spaces with hyphens
+function sanitizeSlug(slug, maxLength = 100) {
+    // Convert to lowercase and replace spaces with hyphens
+    slug = slug.toLowerCase().replace(/\s+/g, '-');
 
-    slug = encodeURI(slug);
+    // Encode the slug
+    slug = encodeURIComponent(slug);
 
-    return slug.replace(/%20/g, '-') // Replace encoded spaces with hyphens
+    // Replace encoded spaces with hyphens and remove unwanted characters
+    slug = slug.replace(/%20/g, '-') // Replace encoded spaces with hyphens
                .replace(/%/g, ''); // Remove any other unwanted characters (optional)
+
+    // Truncate the slug to the maximum length
+    if (slug.length > maxLength) {
+        slug = slug.substring(0, maxLength);
+    }
+
+    return slug;
 }
+
 
 // Function to generate Markdown files from CSV data
 
