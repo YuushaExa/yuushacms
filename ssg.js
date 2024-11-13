@@ -219,9 +219,8 @@ async function fetchCsv(url) {
 }
 
 async function loadCharMap() {
-    const filePath = path.join(__dirname, 'plugins', 'charmap.json'); // Adjust the path as necessary
-    const data = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(data);
+    const response = await fetch('https://raw.githubusercontent.com/YuushaExa/yuushacms/refs/heads/main/plugins/charmap.json');
+    return await response.json();
 }
 
 async function sanitizeSlug(slug, maxLength = 50) {
@@ -258,6 +257,7 @@ async function sanitizeSlug(slug, maxLength = 50) {
 
     return slug;
 }
+
 
 
 // Function to generate Markdown files from CSV data
