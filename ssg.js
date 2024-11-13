@@ -221,6 +221,15 @@ async function fetchCsv(url) {
 function sanitizeSlug(slug, maxLength = 50) {
     // Check if the slug can be processed (contains only Latin characters and spaces)
     const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
+   const specialCharMap = {
+        "в": "v",
+        "е": "e",
+        "т": "t",
+        "о": "o"
+    };
+
+    // Replace special characters with their corresponding words
+    slug = slug.replace(/[${}%&<]/g, (match) => specialCharMap[match]);
 
     if (isLatin) {
         // Process the slug if it contains only Latin characters
