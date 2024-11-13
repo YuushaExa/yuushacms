@@ -219,7 +219,7 @@ async function fetchCsv(url) {
 }
 
 // Function to generate Markdown files from CSV data
-async function generateMarkdownFromCsv(data, contentDir) {
+async function generateMarkdownFromCsv(data) {
     let postCounter = 1; // Initialize a counter for posts
 
     for (const item of data) {
@@ -228,26 +228,21 @@ async function generateMarkdownFromCsv(data, contentDir) {
         });
 
         const title = item.Title || 'post';
-        let slug = title
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-') // Replace spaces with hyphens
-            .replace(/[^a-z0-9\-:'()]/g, '-') // Allow letters, numbers, hyphens, colons, apostrophes, and parentheses
-            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-            .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
+      let slug = title
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/[^a-z0-9\-:'()]/g, '-') // Allow letters, numbers, hyphens, colons, apostrophes, and parentheses
+    .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+    .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
 
-        // Log invalid titles and skip if slug is empty
-        if (!slug) {
-            console.warn(`Invalid title skipped: "${title}"`);
-            continue; // Skip this iteration if slug is invalid
-        }
+// Fallback for empty slug
+if (!slug) {
+    console.warn('Generated slug is empty, using default "post"');
+    slug = `post-${postCounter}`; // Use counter to create a unique slug
+    postCounter++; // Increment the counter
+}
 
-        // Fallback for empty slug
-        if (!slug) {
-            console.warn('Generated slug is empty, using default "post"');
-            slug = `post-${postCounter}`; // Use counter to create a unique slug
-            postCounter++; // Increment the counter
-        }
 
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
