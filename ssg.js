@@ -233,7 +233,12 @@ function sanitizeSlug(slug, maxLength = 50) {
             .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
     } else {
         // Use encodeURI for non-Latin characters
-        slug = encodeURI(slug);
+        slug = encodeURI(slug)
+         .toLowerCase()
+            .replace(/[\s]+/g, '-') // Replace spaces with hyphens
+            .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
+            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+            .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
     }
 
     // Trim to maxLength if necessary
