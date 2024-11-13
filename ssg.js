@@ -219,6 +219,7 @@ async function fetchCsv(url) {
 }
 
 // Function to generate Markdown files from CSV data
+
 async function generateMarkdownFromCsv(data) {
     let postCounter = 1; // Initialize a counter for posts
 
@@ -228,19 +229,25 @@ async function generateMarkdownFromCsv(data) {
         });
 
         const title = item.Title || 'post';
-      let slug = title
+        let slug = title
             .replace(/\s+/g, '-') // Replace spaces with hyphens
             .replace(/[^\p{L}\d\-:'()]/gu, '-') // Allow letters (including non-ASCII), digits, hyphens, colons, apostrophes, and parentheses
             .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
             .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
 
-// Fallback for empty slug
-if (!slug) {
-    console.warn('Generated slug is empty, using default "post"');
-    slug = `post-${postCounter}`; // Use counter to create a unique slug
-    postCounter++; // Increment the counter
-}
+        // Fallback for empty slug
+        if (!slug) {
+            console.warn('Generated slug is empty, using default "post"');
+            slug = `post-${postCounter}`; // Use counter to create a unique slug
+            postCounter++; // Increment the counter
+        }
 
+        // Check if slug is still invalid after regex processing
+        if (!slug || slug.length === 0) {
+            console.warn('Generated slug is still invalid, using default "post"');
+            slug = `post-${postCounter}`; // Use counter to create a unique slug
+            postCounter++; // Increment the counter
+        }
 
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
