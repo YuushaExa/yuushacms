@@ -220,7 +220,7 @@ async function fetchCsv(url) {
 
 // Function to generate Markdown files from CSV data
 
-async function generateMarkdownFromCsv(data, contentDir) {
+async function generateMarkdownFromCsv(data) {
     let postCounter = 1; // Initialize a counter for posts
     const failedSlugs = []; // Array to store records with failed slug generation
 
