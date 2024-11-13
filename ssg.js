@@ -220,6 +220,12 @@ async function fetchCsv(url) {
 
 // Function to sanitize the slug for file names
 function sanitizeSlug(slug, maxLength = 50) {
+    // Check if the slug is empty or invalid
+    if (!slug || typeof slug !== 'string') {
+        console.log('Error: Invalid slug input. Skipping sanitization.');
+        return ''; // Return an empty string or handle as needed
+    }
+
     // Convert to lowercase and replace spaces with hyphens
     slug = slug.toLowerCase().replace(/\s+/g, '-');
 
@@ -230,6 +236,7 @@ function sanitizeSlug(slug, maxLength = 50) {
 
     // Truncate the slug to the maximum length
     if (slug.length > maxLength) {
+        console.log(`Slug "${slug}" exceeds maximum length of ${maxLength}. Truncating...`);
         slug = slug.substring(0, maxLength);
     }
 
