@@ -219,12 +219,12 @@ async function fetchCsv(url) {
 }
 
 // Function to sanitize the slug for file names
-function sanitizeSlug(slug, maxLength = 200) {
+function sanitizeSlug(slug, maxLength = 50) {
     // Convert to lowercase and replace spaces with hyphens
     slug = slug.toLowerCase().replace(/\s+/g, '-');
 
     // Encode the slug
-    slug = encodeURIComponent(slug)
+    slug = encodeURI(slug)
                .replace(/\//g, '-')
                .replace(/%20/g, '-');
 
