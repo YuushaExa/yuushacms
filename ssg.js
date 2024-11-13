@@ -220,7 +220,6 @@ async function fetchCsv(url) {
 
 function sanitizeSlug(slug, maxLength = 50) {
     // Check if the slug can be processed (contains only Latin characters and spaces)
-    const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
    const specialCharMap = {
         "в": "v",
         "е": "e",
@@ -231,7 +230,6 @@ function sanitizeSlug(slug, maxLength = 50) {
     // Replace special characters with their corresponding words
     slug = slug.replace(/[${}%&<]/g, (match) => specialCharMap[match]);
 
-    if (isLatin) {
         // Process the slug if it contains only Latin characters
         slug = slug
             .toLowerCase()
@@ -239,15 +237,7 @@ function sanitizeSlug(slug, maxLength = 50) {
             .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
             .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
             .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
-    } else {
-        // Use encodeURI for non-Latin characters
-        slug = encodeURI(slug)
-         .toLowerCase()
-            .replace(/[\s]+/g, '-') // Replace spaces with hyphens
-            .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
-            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-            .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
-    }
+
 
     // Trim to maxLength if necessary
     if (slug.length > maxLength) {
