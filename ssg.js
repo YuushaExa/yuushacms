@@ -230,13 +230,14 @@ async function generateMarkdownFromCsv(data) {
         });
 
         const title = item.Title || 'post';
-        let slug = title
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-') // Replace spaces with hyphens
-            .replace(/[^a-z0-9\-:'()]/g, '-') // Allow letters, numbers, hyphens, colons, apostrophes, and parentheses
-            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-            .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
+let slug = title
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/[^\w\-:'()]/g, '-') // Allow letters (including non-ASCII), numbers, hyphens, colons, apostrophes, and parentheses
+    .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+    .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
+
 
         // Check for empty slug and log problematic titles
         if (!slug) {
@@ -251,7 +252,6 @@ async function generateMarkdownFromCsv(data) {
 
         try {
             await fs.writeFile(markdownFilePath, markdownContent);
-            console.log(`Created Markdown file: ${markdownFilePath}`);
         } catch (error) {
             console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
         }
