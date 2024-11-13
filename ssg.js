@@ -229,15 +229,10 @@ async function generateMarkdownFromCsv(data) {
 
         const title = item.Title || 'post';
       let slug = title
-            .toLowerCase() // Convert to lower case
-            .normalize('NFD') // Normalize to decompose combined characters
-            .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-            .trim() // Trim whitespace from both ends
-            .replace(/[^a-z0-9\s\-:'()]/g, '') // Strip special characters, allowing letters, digits, spaces, hyphens, colons, apostrophes, and parentheses
             .replace(/\s+/g, '-') // Replace spaces with hyphens
+            .replace(/[^\p{L}\d\-:'()]/gu, '-') // Allow letters (including non-ASCII), digits, hyphens, colons, apostrophes, and parentheses
             .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
             .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
-
 
 // Fallback for empty slug
 if (!slug) {
