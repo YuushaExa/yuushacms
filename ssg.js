@@ -24,11 +24,11 @@ const config = {
         exclude: []  // Specify partials to exclude
     },
     json: {
-        include: ["https://raw.githubusercontent.com/YuushaExa/v/refs/heads/main/games.json"], // Specify JSON files to include
+        include: ["https://raw.githubusercontent.com/YuushaExa/v/refs/heads/main/games.json", "https://raw.githubusercontent.com/YuushaExa/v/refs/heads/main/Testcsvjson/data.json"], // Specify JSON files to include
         exclude: []   // Specify JSON files to exclude
     },
     csv: {
-        include: ["https://github.com/YuushaExa/v/releases/download/csv/wiki_movie_plots_deduped.csv"], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csv/wiki_movie_plots_deduped.csv"
+        include: [], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csv/wiki_movie_plots_deduped.csv"
         exclude: []   // Specify CSV files to exclude
     }
 };
