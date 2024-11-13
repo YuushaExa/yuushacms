@@ -219,51 +219,34 @@ async function fetchCsv(url) {
 }
 
 
-async function loadCharMap() {
-    const filePath = path.join(__dirname, 'plugins', 'charmap.json'); // Adjust the path as necessary
-    try {
-        const data = await fs.readFile(filePath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error('Error loading charMap:', error);
-        throw error; // Rethrow the error after logging it
-    }
-}
+function sanitizeSlug(slug, maxLength = 50) {
+    // Check if the slug can be processed (contains only Latin characters and spaces)
+    const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
 
-async function sanitizeSlug(slug, maxLength = 50) {
-    let charMap;
-    try {
-        charMap = await loadCharMap();
-    } catch (error) {
-        console.error('Error loading charMap in sanitizeSlug:', error);
-        return ''; // Return an empty string or handle the error as needed
-    }
-
-    try {
-        // Replace characters based on the charMap
-        slug = slug.split('').map(char => charMap[char] || char).join('');
-
-        // Check if the slug can be processed (contains only Latin characters and spaces)
-        const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
-
-        // Process the slug based on whether it contains only Latin characters
+    if (isLatin) {
+        // Process the slug if it contains only Latin characters
         slug = slug
             .toLowerCase()
             .replace(/[\s]+/g, '-') // Replace spaces with hyphens
             .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
             .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
             .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
-
-        // Trim to maxLength if necessary
-        if (slug.length > maxLength) {
-            slug = slug.substring(0, maxLength).replace(/-+$/, ''); // Remove trailing hyphens
-        }
-
-        return slug;
-    } catch (error) {
-        console.error('Error sanitizing slug:', error);
-        return ''; // Return an empty string or handle the error as needed
+    } else {
+        // Use encodeURI for non-Latin characters
+        slug = encodeURI(slug)
+         .toLowerCase()
+            .replace(/[\s]+/g, '-') // Replace spaces with hyphens
+            .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
+            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+            .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
     }
+
+    // Trim to maxLength if necessary
+    if (slug.length > maxLength) {
+        slug = slug.substring(0, maxLength).replace(/-+$/, ''); // Remove trailing hyphens
+    }
+
+    return slug;
 }
 
 // Function to generate Markdown files from CSV data
