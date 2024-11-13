@@ -225,7 +225,7 @@ function sanitizeSlug(slug, maxLength = 200) {
 
     // Encode the slug
     slug = encodeURI(slug);
-
+ slug = slug.replace(/\//g, '-');
 
     // Truncate the slug to the maximum length
     if (slug.length > maxLength) {
