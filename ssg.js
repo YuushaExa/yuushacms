@@ -219,37 +219,17 @@ async function fetchCsv(url) {
 }
 
 // Function to generate Markdown files from CSV data
-
 async function generateMarkdownFromCsv(data) {
     let postCounter = 1; // Initialize a counter for posts
-    const problematicTitles = []; // Array to store titles that cause problems
 
     for (const item of data) {
         const frontMatter = matter.stringify('', {
             title: item.Title || 'Untitled'
         });
 
-        const title = item.Title || 'post';
-        console.log(`Processing title: "${title}"`); // Log the title being processed
-
-        let slug = title
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-') // Replace spaces with hyphens
-            .replace(/[^\p{L}\d\-:'()]/gu, '-') // Allow letters (including non-ASCII), digits, hyphens, colons, apostrophes, and parentheses
-            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-            .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
-
-        // Log the generated slug for debugging
-        console.log(`Generated slug: "${slug}" for title: "${title}"`);
-
-        // Check for empty slug and log problematic titles
-        if (!slug) {
-            console.warn(`Generated slug is empty for title: "${title}", using default "post-${postCounter}"`);
-            problematicTitles.push(title); // Log the problematic title
-            slug = `post-${postCounter}`; // Use counter to create a unique slug
-            postCounter++; // Increment the counter
-        }
+        // Simplified slug generation
+        let slug = `post${postCounter}`; // Create a slug like "post1", "post2", etc.
+        postCounter++; // Increment the counter
 
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
@@ -259,12 +239,6 @@ async function generateMarkdownFromCsv(data) {
         } catch (error) {
             console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
         }
-    }
-
-    // Log all problematic titles at the end
-    if (problematicTitles.length > 0) {
-        console.log('Problematic titles that generated empty slugs:');
-        problematicTitles.forEach(title => console.log(`- "${title}"`));
     }
 }
 
