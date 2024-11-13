@@ -220,7 +220,7 @@ async function fetchCsv(url) {
 
 // Function to generate Markdown files from CSV data
 
-async function generateMarkdownFromCsv(data, contentDir) {
+async function generateMarkdownFromCsv(data) {
     let postCounter = 1; // Initialize a counter for posts
 
     for (const item of data) {
@@ -231,22 +231,17 @@ async function generateMarkdownFromCsv(data, contentDir) {
         const title = item.Title || 'post';
         let slug = title
             .toLowerCase()
-            .trim() // Remove leading and trailing whitespace
-            .replace(/\s+/g, '-') // Replace spaces with dashes
-            .replace(/[^a-z0-9-'’]/g, '-') // Sanitize slug, allowing apostrophes
-            .replace(/--+/g, '-') // Replace multiple dashes with a single dash
-            .replace(/^-|-$/g, ''); // Remove leading and trailing dashes
+            .trim()
+            .replace(/\s+/g, '-') 
+            .replace(/[^a-z0-9-'’]/g, '-') 
+            .replace(/--+/g, '-') 
+            .replace(/^-|-$/g, '');
 
-        // Check if slug is empty or invalid
+        // Fallback for empty slug
         if (!slug) {
-            console.warn('Generated slug is empty, using default "PostFix" with counter');
-            slug = `PostFix-${postCounter++}`; // Use PostFix with counter
-        } else {
-            // Check if the slug already exists and increment the counter if it does
-            let originalSlug = slug;
-            while (await fs.access(path.join(contentDir, `${slug}.md`)).then(() => true).catch(() => false)) {
-                slug = `${originalSlug}-PostFix-${postCounter++}`; // Append PostFix and increment counter
-            }
+            console.warn('Generated slug is empty, using default "post"');
+            slug = `post-${postCounter}`; // Use counter to create a unique slug
+            postCounter++; // Increment the counter
         }
 
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
@@ -259,6 +254,7 @@ async function generateMarkdownFromCsv(data, contentDir) {
         }
     }
 }
+
 
 // Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
