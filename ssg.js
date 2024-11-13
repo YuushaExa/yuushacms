@@ -220,9 +220,9 @@ async function fetchCsv(url) {
 
 // Function to sanitize the slug for file names
 function sanitizeSlug(slug, maxLength = 50) {
-    // Convert to lowercase
-    slug = slug.toLowerCase()
-        // Replace spaces and invalid characters with hyphens
+    // Convert to lowercase and replace invalid characters
+    slug = slug
+        .toLowerCase()
         .replace(/[\s]+/g, '-') // Replace spaces with hyphens
         .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
         .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
@@ -230,12 +230,12 @@ function sanitizeSlug(slug, maxLength = 50) {
 
     // Trim to maxLength if necessary
     if (slug.length > maxLength) {
-        slug = slug.substring(0, maxLength);
-        // Optionally, trim to the last valid hyphen
+        slug = slug.substring(0, maxLength).replace(/-+$/, ''); // Remove trailing hyphens
     }
 
     return slug;
 }
+
 
 
 // Function to generate Markdown files from CSV data
