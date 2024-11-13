@@ -232,7 +232,6 @@ function sanitizeSlug(slug, maxLength = 50) {
     if (slug.length > maxLength) {
         slug = slug.substring(0, maxLength);
         // Optionally, trim to the last valid hyphen
-        slug = slug.replace(/-+$/, ''); // Remove trailing hyphens if any
     }
 
     return slug;
