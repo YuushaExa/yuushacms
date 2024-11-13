@@ -234,9 +234,10 @@ let slug = title
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/[^\w\-:'()]/g, '-') // Allow letters (including non-ASCII), numbers, hyphens, colons, apostrophes, and parentheses
+    .replace(/[^\p{L}\d\-:'()]/gu, '-') // Allow letters (including non-ASCII), digits, hyphens, colons, apostrophes, and parentheses
     .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
     .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
+
 
 
         // Check for empty slug and log problematic titles
