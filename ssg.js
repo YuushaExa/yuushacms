@@ -222,31 +222,37 @@ async function fetchCsv(url) {
 
 async function generateMarkdownFromCsv(data) {
     let postCounter = 1; // Initialize a counter for posts
-    const failedSlugs = []; // Array to store records with failed slug generation
+    const skippedPosts = []; // Array to hold skipped post titles
 
-      for (const item of data) {
+    for (const item of data) {
+        const title = item.Title || 'Untitled';
+        if (title === 'Untitled') {
+            skippedPosts.push('Untitled post'); // Log skipped post with no title
+            console.warn(`Skipped post: ${title}`);
+            continue; // Skip to the next iteration
+        }
+
         const frontMatter = matter.stringify('', {
-            title: item.Title || 'Untitled'
+            title: title
         });
 
-        const title = item.Title || 'post';
-      let slug = title
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/[^a-z0-9\-:'()]/g, '-') // Allow letters, numbers, hyphens, colons, apostrophes, and parentheses
-    .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-    .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
+        let slug = title
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-') // Replace spaces with hyphens
+            .replace(/[^a-z0-9\-:'()]/g, '-') // Allow letters, numbers, hyphens, colons, apostrophes, and parentheses
+            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+            .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
 
-// Fallback for empty slug
-if (!slug) {
-    console.warn('Generated slug is empty, using default "post"');
-    slug = `post-${postCounter}`; // Use counter to create a unique slug
-    postCounter++; // Increment the counter
-}
-      const markdownFilePath = path.join(contentDir, `${slug}.md`);
+        // Fallback for empty slug
+        if (!slug) {
+            console.warn('Generated slug is empty, using default "post"');
+            slug = `post-${postCounter}`; // Use counter to create a unique slug
+            postCounter++; // Increment the counter
+        }
+
+        const markdownFilePath = path.join(contentDir, `${slug}.md`);
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
-
 
         try {
             await fs.writeFile(markdownFilePath, markdownContent);
@@ -255,14 +261,11 @@ if (!slug) {
         }
     }
 
-    // Log all records that failed to generate a valid slug
-    if (failedSlugs.length > 0) {
-        console.log('The following records failed to generate a valid slug:');
-        console.log(JSON.stringify(failedSlugs, null, 2));
+    // Log skipped posts at the end
+    if (skippedPosts.length > 0) {
+        console.log('Skipped posts:', skippedPosts);
     }
 }
-
-
 
 // Function to extract JSON data from layout files
 async function extractJsonDataFromLayouts() {
