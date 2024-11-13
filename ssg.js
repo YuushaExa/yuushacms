@@ -221,11 +221,7 @@ async function fetchCsv(url) {
 // Function to sanitize the slug for file names
 function sanitizeSlug(slug, maxLength = 50) {
     // Convert to lowercase, replace spaces and encode the slug in one go
-    slug = encodeURIComponent(slug.toLowerCase())
-      .replace(/%20/g, '-') // Replace encoded spaces with hyphens
- .replace(/[^\w\s-]+/g, '-') // Allow Unicode characters
-        .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-        .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
+    slug = encodeURIComponent(slug.toLowerCase());
 
     return slug.length > maxLength ? slug.substring(0, maxLength) : slug;
 }
