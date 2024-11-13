@@ -241,20 +241,20 @@ async function generateMarkdownFromCsv(data) {
             title: title
         });
 
-        let slug = title
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-') 
-            .replace(/[^a-z0-9-'’]/g, '-') 
-            .replace(/--+/g, '-') 
-            .replace(/^-|-$/g, '');
+let slug = title
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/[^a-z0-9\-:'()]/g, '-') // Allow letters, numbers, hyphens, colons, apostrophes, and parentheses
+    .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+    .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
 
-        // Fallback for empty slug
-        if (!slug) {
-            console.warn('Generated slug is empty, using default "post"');
-            slug = `post-${postCounter}`; // Use counter to create a unique slug
-            postCounter++; // Increment the counter
-        }
+// Fallback for empty slug
+if (!slug) {
+    console.warn('Generated slug is empty, using default "post"');
+    slug = `post-${postCounter}`; // Use counter to create a unique slug
+    postCounter++; // Increment the counter
+}
 
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
