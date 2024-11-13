@@ -227,7 +227,7 @@ function sanitizeSlug(slug, maxLength = 50) {
     }
 
     // Convert to lowercase, replace spaces and encode the slug in one go
-    slug = encodeURI(slug.toLowerCase())
+    slug = encodeURIComponent(slug.toLowerCase())
         .replace(/%20/g, '-') // Replace encoded spaces with hyphens
         .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
         .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
