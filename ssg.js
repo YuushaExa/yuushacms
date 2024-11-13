@@ -219,7 +219,17 @@ async function fetchCsv(url) {
 }
 
 // Function to sanitize the slug for file names
-function sanitizeSlug(slug, maxLength = 50) {
+async function loadCharMap() {
+    const response = await fetch('plugins/charmap.json');
+    return await response.json();
+}
+
+async function sanitizeSlug(slug, maxLength = 50) {
+    const charMap = await loadCharMap();
+
+    // Replace characters based on the charMap
+    slug = slug.split('').map(char => charMap[char] || char).join('');
+
     // Check if the slug can be processed (contains only Latin characters and spaces)
     const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
 
@@ -232,9 +242,9 @@ function sanitizeSlug(slug, maxLength = 50) {
             .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
             .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
     } else {
-        // Use encodeURI for non-Latin characters
-        slug = encodeURI(slug)
-         .toLowerCase()
+        // If there are still non-Latin characters, you might want to handle them differently
+        slug = slug
+            .toLowerCase()
             .replace(/[\s]+/g, '-') // Replace spaces with hyphens
             .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
             .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
@@ -248,6 +258,9 @@ function sanitizeSlug(slug, maxLength = 50) {
 
     return slug;
 }
+
+// Example usage
+sanitizeSlug("Hello, áéíóú World!").then(console.log); // Output will depend on charmap.json
 
 
 
