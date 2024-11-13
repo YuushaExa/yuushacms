@@ -288,10 +288,10 @@ async function fetchJson(url) {
 async function generateMarkdownFromJson(data) {
     for (const item of data) {
         const frontMatter = matter.stringify('', {
-            title: item.title || 'Untitled'
+            title: item.titles || 'Untitled'
         });
 
-        const slug = (item.title || 'post').toLowerCase().replace(/\s+/g, '-');
+        const slug = (item.titles || 'post').toLowerCase().replace(/\s+/g, '-');
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
