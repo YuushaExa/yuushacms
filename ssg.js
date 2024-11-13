@@ -219,12 +219,34 @@ async function fetchCsv(url) {
 }
 
 // Function to sanitize the slug for file names
-function sanitizeSlug(slug, maxLength = 50) {
-    // Convert to lowercase, replace spaces and encode the slug in one go
+function sanitizeSlug(slug, maxLength = 50, replacementChar = '-') {
+    // Check if the slug is empty or invalid
+    if (!slug || typeof slug !== 'string') {
+        console.error('Error: Invalid slug input. Skipping sanitization.');
+        return { original: slug, sanitized: '' }; // Return an object with original and sanitized
+    }
+
+    // Convert to lowercase and encode the slug
     slug = encodeURIComponent(slug.toLowerCase());
 
-    return slug.length > maxLength ? slug.substring(0, maxLength) : slug;
+    // Replace spaces and invalid characters with the specified replacement character
+    slug = slug.replace(/%20/g, replacementChar) // Replace encoded spaces
+               .replace(/[^\w-]+/g, replacementChar) // Replace invalid characters
+               .replace(new RegExp(`${replacementChar}{2,}`, 'g'), replacementChar) // Replace multiple replacements
+               .replace(new RegExp(`^${replacementChar}+|${replacementChar}+$`, 'g'), ''); // Trim replacements
+
+    // Truncate the slug to the maximum length
+    if (slug.length > maxLength) {
+        slug = slug.substring(0, maxLength);
+    }
+
+    return { original: slug, sanitized: slug }; // Return an object with original and sanitized
 }
+
+// Example usage
+const result = sanitizeSlug("Hello World! This is a test slug.", 30);
+console.log(result);
+
 
 
 // Function to generate Markdown files from CSV data
