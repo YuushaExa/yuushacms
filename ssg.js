@@ -219,33 +219,41 @@ async function fetchCsv(url) {
 }
 
 // Function to generate Markdown files from CSV data
-async function generateMarkdownFromCsv(data) {
+const fs = require('fs').promises; // Ensure you have the correct fs import
+const path = require('path');
+const matter = require('gray-matter'); // Ensure you have the correct matter import
+
+async function generateMarkdownFromCsv(data, contentDir) {
+    let postCounter = 1; // Initialize a counter for posts
+
     for (const item of data) {
         const frontMatter = matter.stringify('', {
             title: item.Title || 'Untitled'
         });
 
-       const title = item.Title || 'post';
-let slug = title
-    .toLowerCase()
-    .trim() // Remove leading and trailing whitespace
-    .replace(/\s+/g, '-') // Replace spaces with dashes
-    .replace(/[^a-z0-9-'’]/g, '-') // Sanitize slug, allowing apostrophes
-    .replace(/--+/g, '-') // Replace multiple dashes with a single dash
-    .replace(/^-|-$/g, ''); // Remove leading and trailing dashes
+        const title = item.Title || 'post';
+        let slug = title
+            .toLowerCase()
+            .trim() // Remove leading and trailing whitespace
+            .replace(/\s+/g, '-') // Replace spaces with dashes
+            .replace(/[^a-z0-9-'’]/g, '-') // Sanitize slug, allowing apostrophes
+            .replace(/--+/g, '-') // Replace multiple dashes with a single dash
+            .replace(/^-|-$/g, ''); // Remove leading and trailing dashes
 
-if (!slug) {
-    console.warn('Generated slug is empty, using default "post"');
-    slug = 'post'; // Fallback to 'post' if slug is empty
-}
-
-
+        // Check if slug is empty or invalid
+        if (!slug) {
+            console.warn('Generated slug is empty, using default "PostFix" with counter');
+            slug = `PostFix-${postCounter++}`; // Use PostFix with counter
+        } else {
+            // Check if the slug already exists and increment the counter if it does
+            let originalSlug = slug;
+            while (await fs.access(path.join(contentDir, `${slug}.md")).then(() => true).catch(() => false)) {
+                slug = `${originalSlug}-PostFix-${postCounter++}`; // Append PostFix and increment counter
+            }
+        }
 
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
-        
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
-        
-  
 
         try {
             await fs.writeFile(markdownFilePath, markdownContent);
