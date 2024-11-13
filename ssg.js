@@ -218,10 +218,10 @@ async function fetchCsv(url) {
     });
 }
 
-// Function to sanitize the slug for file names
 async function loadCharMap() {
-    const response = await fetch('plugins/charmap.json');
-    return await response.json();
+    const filePath = path.join(__dirname, 'plugins', 'charmap.json'); // Adjust the path as necessary
+    const data = await fs.readFile(filePath, 'utf-8');
+    return JSON.parse(data);
 }
 
 async function sanitizeSlug(slug, maxLength = 50) {
@@ -258,10 +258,6 @@ async function sanitizeSlug(slug, maxLength = 50) {
 
     return slug;
 }
-
-// Example usage
-sanitizeSlug("Hello, áéíóú World!").then(console.log); // Output will depend on charmap.json
-
 
 
 // Function to generate Markdown files from CSV data
