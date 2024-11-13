@@ -284,6 +284,17 @@ async function fetchJson(url) {
 }
 
 
+
+// Function to sanitize the slug for file names
+function sanitizeSlug(slug) {
+    return slug
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-') // Replace invalid characters with '-'
+        .replace(/--+/g, '-') // Replace multiple dashes with a single dash
+        .replace(/^-|-$/g, ''); // Remove leading and trailing dashes
+}
+
+// Function to generate Markdown files from JSON data
 async function generateMarkdownFromJson(data) {
     for (const item of data) {
         const title = item.titles[0] || 'Untitled'; // Use the first title or 'Untitled'
@@ -291,7 +302,7 @@ async function generateMarkdownFromJson(data) {
             title: title
         });
 
-        const slug = title.toLowerCase().replace(/\s+/g, '-');
+        const slug = sanitizeSlug(title); // Sanitize the slug
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
