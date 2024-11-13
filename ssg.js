@@ -226,20 +226,15 @@ function sanitizeSlug(slug, maxLength = 50) {
         return ''; // Return an empty string or handle as needed
     }
 
-    // Convert to lowercase and replace spaces with hyphens
-    slug = slug.toLowerCase().replace(/\s+/g, '-');
-
-    // Encode the slug
-    slug = encodeURI(slug)
-               .replace(/\//g, '-')
-               .replace(/%20/g, '-');
+    // Convert to lowercase, replace spaces and encode the slug in one go
+    slug = encodeURI(slug.toLowerCase())
+        .replace(/%20/g, '-') // Replace encoded spaces with hyphens
+        .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
+        .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+        .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
 
     // Truncate the slug to the maximum length
-    if (slug.length > maxLength) {
-        slug = slug.substring(0, maxLength);
-    }
-
-    return slug;
+    return slug.length > maxLength ? slug.substring(0, maxLength) : slug;
 }
 
 
