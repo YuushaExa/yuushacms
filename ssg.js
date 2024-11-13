@@ -230,15 +230,18 @@ async function generateMarkdownFromCsv(data) {
         });
 
         const title = item.Title || 'post';
-let slug = title
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/[^\p{L}\d\-:'()]/gu, '-') // Allow letters (including non-ASCII), digits, hyphens, colons, apostrophes, and parentheses
-    .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-    .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
+        console.log(`Processing title: "${title}"`); // Log the title being processed
 
+        let slug = title
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-') // Replace spaces with hyphens
+            .replace(/[^\p{L}\d\-:'()]/gu, '-') // Allow letters (including non-ASCII), digits, hyphens, colons, apostrophes, and parentheses
+            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+            .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
 
+        // Log the generated slug for debugging
+        console.log(`Generated slug: "${slug}" for title: "${title}"`);
 
         // Check for empty slug and log problematic titles
         if (!slug) {
@@ -264,7 +267,6 @@ let slug = title
         problematicTitles.forEach(title => console.log(`- "${title}"`));
     }
 }
-
 
 
 // Function to extract JSON data from layout files
