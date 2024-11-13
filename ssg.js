@@ -236,7 +236,6 @@ function sanitizeSlug(slug, maxLength = 50) {
 
     // Truncate the slug to the maximum length
     if (slug.length > maxLength) {
-        console.log(`Slug "${slug}" exceeds maximum length of ${maxLength}. Truncating...`);
         slug = slug.substring(0, maxLength);
     }
 
