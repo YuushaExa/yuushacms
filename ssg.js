@@ -221,7 +221,7 @@ async function fetchCsv(url) {
 // Function to sanitize the slug for file names
 function sanitizeSlug(slug, maxLength = 50) {
     // Convert to lowercase, replace spaces and encode the slug in one go
-    slug = encodeURIComponent(slug.toLowerCase());
+    slug = encodeURI(slug.toLowerCase());
     return slug.length > maxLength ? slug.substring(0, maxLength) : slug;
 }
 
