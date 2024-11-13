@@ -287,12 +287,12 @@ async function fetchJson(url) {
 
 // Function to sanitize the slug for file names
 function sanitizeSlug(slug) {
-    return slug
-        .toLowerCase()
-           .replace(/\s+/g, '-') // Replace spaces with hyphens
-            .replace(/[^\p{L}\d\-:'()]/gu, '-') // Allow letters (including non-ASCII), digits, hyphens, colons, apostrophes, and parentheses
-            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-            .replace(/^-|-$/g, ''); // Trim hyphens from the start and end
+    slug = slug.toLowerCase().replace(/\s+/g, '-'); // Replace spaces with hyphens
+
+    slug = encodeURIComponent(slug);
+
+    return slug.replace(/%20/g, '-') // Replace encoded spaces with hyphens
+               .replace(/%/g, ''); // Remove any other unwanted characters (optional)
 }
 
 // Function to generate Markdown files from JSON data
@@ -310,6 +310,7 @@ async function generateMarkdownFromJson(data) {
         await fs.writeFile(markdownFilePath, markdownContent);
     }
 }
+
 
 // Main content processing function
 // Main content processing function
