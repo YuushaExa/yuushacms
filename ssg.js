@@ -219,19 +219,28 @@ async function fetchCsv(url) {
 }
 
 function sanitizeSlug(slug, maxLength = 50) {
+    // Check if the slug can be processed (contains only Latin characters and spaces)
     const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
 
-    slug = slug
-        .toLowerCase()
-        .replace(/[\s]+/g, '-') // Replace spaces with hyphens
-        .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
-        .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-        .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
-
-    if (!isLatin) {
-        slug = encodeURI(slug);
+    if (isLatin) {
+        // Process the slug if it contains only Latin characters
+        slug = slug
+            .toLowerCase()
+            .replace(/[\s]+/g, '-') // Replace spaces with hyphens
+            .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
+            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+            .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
+    } else {
+        // Use encodeURI for non-Latin characters
+        slug = encodeURI(slug)
+         .toLowerCase()
+            .replace(/[\s]+/g, '-') // Replace spaces with hyphens
+            .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
+            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+            .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
     }
 
+    // Trim to maxLength if necessary
     if (slug.length > maxLength) {
         slug = slug.substring(0, maxLength).replace(/-+$/, ''); // Remove trailing hyphens
     }
