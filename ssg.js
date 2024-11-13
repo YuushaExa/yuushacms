@@ -222,7 +222,7 @@ async function fetchCsv(url) {
 function sanitizeSlug(slug) {
     slug = slug.toLowerCase().replace(/\s+/g, '-'); // Replace spaces with hyphens
 
-    slug = encodeURIComponent(slug);
+    slug = encodeURI(slug);
 
     return slug.replace(/%20/g, '-') // Replace encoded spaces with hyphens
                .replace(/%/g, ''); // Remove any other unwanted characters (optional)
