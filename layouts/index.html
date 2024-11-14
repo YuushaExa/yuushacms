@@ -5,13 +5,13 @@
 
 <div class="pagination">
     {{#if prevPageLink}}
-        <a href="{{prevPageLink}}">Previous</a>
+        <a href="{{{prevPageLink}}}">Previous</a> <!-- Triple braces to prevent HTML escaping -->
     {{/if}}
 
     <span>Page {{currentPage}} of {{totalPages}}</span>
 
     {{#if nextPageLink}}
-        <a href="{{nextPageLink}}">Next</a>
+        <a href="{{{nextPageLink}}}">Next</a> <!-- Triple braces to prevent HTML escaping -->
     {{/if}}
 </div>
 
