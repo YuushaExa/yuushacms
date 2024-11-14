@@ -220,7 +220,7 @@ async function fetchCsv(url) {
 
 function sanitizeSlug(slug, maxLength = 50) {
     // Define the mapping of Cyrillic characters to Latin characters
- const specialCharMap = {
+const specialCharMap = {
     "в": "v",
     "е": "e",
     "т": "t",
@@ -236,12 +236,14 @@ function sanitizeSlug(slug, maxLength = 50) {
     "Ц": "Ts"
 };
 
+// Create a regex pattern from the keys of the specialCharMap
+const specialCharPattern = new RegExp(Object.keys(specialCharMap).join('|'), 'g');
 
-    // Function to replace characters based on the specialCharMap
-    const replaceSpecialChars = (str) => {
-        return str.replace(/[веитоцкКдьялЦа]/g, (match) => specialCharMap[match]);
-    };
-
+// Function to replace characters based on the specialCharMap
+const replaceSpecialChars = (str) => {
+    return str.replace(specialCharPattern, (match) => specialCharMap[match]);
+};
+    
     // Check if the slug can be processed (contains only Latin characters and spaces)
     const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
 
