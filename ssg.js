@@ -145,11 +145,7 @@ async function renderTemplate(template, context = {}) {
 
     context.currentYear = new Date().getFullYear();
 
-const context = {
-    pageNumber: 1,
-    totalPages: 5,
-    helpers: helpers // Ensure helpers are available in context
-};
+const helpers = context.helpers || {}; 
     
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
@@ -219,10 +215,21 @@ async function generateIndex(posts, pageNumber = 1) {
     const paginatedPosts = posts.slice(startIndex, endIndex);
 
     const listHTML = await renderTemplate(listTemplate, { posts: paginatedPosts });
+    const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
+
+    // Prepare pagination data
+    const paginationData = {
+        currentPage: pageNumber,
+        totalPages: totalPages,
+        prevPage: pageNumber > 1 ? pageNumber - 1 : null,
+        nextPage: pageNumber < totalPages ? pageNumber + 1 : null
+    };
+
     const renderedContent = await renderTemplate(indexTemplate, {
         list: listHTML,
         pageNumber,
-        totalPages: Math.ceil(posts.length / POSTS_PER_PAGE)
+        totalPages,
+        pagination: paginationData // Include pagination data in the context
     });
 
     return await renderWithBase(renderedContent, { title: `Home - Page ${pageNumber}` });
