@@ -126,7 +126,6 @@ const helpers = {
 };
 
 // Function to evaluate conditions
-// Function to evaluate conditions
 function evaluateCondition(condition, context) {
     // Replace helper function calls
     const replacedCondition = condition.replace(/(\w+)\s*$([^)]+)$/g, (match, funcName, args) => {
@@ -153,6 +152,7 @@ function evaluateCondition(condition, context) {
         return false;
     }
 }
+
 
 
 async function renderTemplate(template, context = {}) {
