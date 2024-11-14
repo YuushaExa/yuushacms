@@ -105,6 +105,7 @@ const helpers = {
 };
 
 // Function to evaluate conditions
+// Function to evaluate conditions
 function evaluateCondition(condition, context) {
     // Regex to match helper functions like (lt 1 6481)
     const helperFunctionRegex = /\b(\w+)\s*\(([^)]+)\)|\((\w+)\s+([^)]+)\)/g;
@@ -117,7 +118,12 @@ function evaluateCondition(condition, context) {
         if (helpers[functionName]) {
             const argValues = argumentsList.split(/\s*,?\s+/).map(arg => {
                 const trimmedArg = arg.trim();
-                return context[trimmedArg] !== undefined ? context[trimmedArg] : isNaN(trimmedArg) ? `'${trimmedArg}'` : trimmedArg;
+                // Log and check for undefined values
+                const contextValue = context[trimmedArg];
+                if (contextValue === undefined) {
+                    console.warn(`Undefined value for ${trimmedArg} in condition`);
+                }
+                return contextValue !== undefined ? contextValue : isNaN(trimmedArg) ? `'${trimmedArg}'` : trimmedArg;
             });
             return `helpers.${functionName}(${argValues.join(', ')})`;
         }
@@ -126,13 +132,21 @@ function evaluateCondition(condition, context) {
 
     // Replace variable names with their values from the context
     const finalCondition = replacedCondition.replace(/\b(\w+)\b/g, (match) => {
-        return context[match] !== undefined ? context[match] : match;
+        const contextValue = context[match];
+        // If the variable is not defined in the context, log it
+        if (contextValue === undefined) {
+            console.warn(`Undefined variable: ${match}`);
+        }
+        return contextValue !== undefined ? contextValue : match;
     });
+
+    // Log the final condition before evaluating
+    console.log(`Evaluating condition: ${finalCondition}`);
 
     // Evaluate the condition safely
     try {
         return eval(finalCondition);
-   } catch (error) {
+    } catch (error) {
         console.error(`Error evaluating condition: ${condition}`);
         console.error(error);
         return false;
@@ -141,13 +155,14 @@ function evaluateCondition(condition, context) {
 
 
 
+
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
+    console.log("Rendering template with context:", context);
+
     context.currentYear = new Date().getFullYear();
 
-const helpers = context.helpers || {}; 
-    
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
