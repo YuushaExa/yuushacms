@@ -127,24 +127,24 @@ const helpers = {
 
 // Function to evaluate conditions
 function evaluateCondition(condition, context) {
-    // Replace helper function calls
-    const replacedCondition = condition.replace(/(\w+)\s*$([^)]+)$/g, (match, funcName, args) => {
+    // Replace helper function calls with appropriate JavaScript code
+    const replacedCondition = condition.replace(/(\w+)\(([^)]+)\)/g, (match, funcName, args) => {
         if (helpers[funcName]) {
             const argValues = args.split(',').map(arg => {
-                // Trim whitespace and replace with context values
-                return context[arg.trim()] !== undefined ? context[arg.trim()] : arg.trim();
+                const trimmedArg = arg.trim();
+                return context[trimmedArg] !== undefined ? context[trimmedArg] : trimmedArg;
             });
-            return `helpers.${funcName}(${argValues.join(',')})`; // Call the helper function
+            return `helpers.${funcName}(${argValues.join(', ')})`; // Call the helper function
         }
-        return match; // Return the original match if not a helper
+        return match;
     });
 
     // Replace variable names with their values from the context
-    const finalCondition = replacedCondition.replace(/(\w+)/g, (match) => {
-        return context[match] !== undefined ? context[match] : match; // Replace with context value
+    const finalCondition = replacedCondition.replace(/\b(\w+)\b/g, (match) => {
+        return context[match] !== undefined ? context[match] : match;
     });
 
-    // Evaluate the condition
+    // Evaluate the condition safely
     try {
         return eval(finalCondition);
     } catch (error) {
@@ -152,7 +152,6 @@ function evaluateCondition(condition, context) {
         return false;
     }
 }
-
 
 
 async function renderTemplate(template, context = {}) {
