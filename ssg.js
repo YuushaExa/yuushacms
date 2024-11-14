@@ -132,8 +132,9 @@ function evaluateCondition(condition, context) {
     // Evaluate the condition safely
     try {
         return eval(finalCondition);
-    } catch (error) {
-        console.error(`Error evaluating condition: ${finalCondition}`, error);
+   } catch (error) {
+        console.error(`Error evaluating condition: ${condition}`);
+        console.error(error);
         return false;
     }
 }
@@ -225,6 +226,13 @@ async function generateIndex(posts, pageNumber = 1) {
     const prevPageLink = prevPage ? `index${prevPage > 1 ? '-' + prevPage : ''}.html` : null;
     const nextPageLink = nextPage ? `index${nextPage > 1 ? '-' + nextPage : ''}.html` : null;
 
+    // Debugging logs
+    console.log('=== Pagination Data ===');
+    console.log(`Current Page: ${pageNumber}`);
+    console.log(`Previous Page Link: ${prevPageLink}`);
+    console.log(`Next Page Link: ${nextPageLink}`);
+    console.log('=======================');
+
     const renderedContent = await renderTemplate(indexTemplate, {
         list: listHTML,
         pageNumber,
@@ -236,6 +244,7 @@ async function generateIndex(posts, pageNumber = 1) {
 
     return await renderWithBase(renderedContent, { title: `Home - Page ${pageNumber}` });
 }
+
 
 
 
