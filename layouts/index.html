@@ -3,15 +3,17 @@
     <p>Check out my latest posts:</p>
     {{ list }}
 
-    <div class="pagination">
-    {{#if pageNumber}}
-        {{#if (gt pageNumber 1)}}
-            <a href="index.html?page={{subtract pageNumber 1}}">Previous</a>
-        {{/if}}
-        {{#if (lt pageNumber totalPages)}}
-            <a href="index.html?page={{add pageNumber 1}}">Next</a>
-        {{/if}}
+<div class="pagination">
+    {{#if pagination.prevPage}}
+        <a href="index{{pagination.prevPage > 1 ? '-' + pagination.prevPage : ''}}.html">Previous</a>
+    {{/if}}
+
+    <span>Page {{pagination.currentPage}} of {{pagination.totalPages}}</span>
+
+    {{#if pagination.nextPage}}
+        <a href="index{{pagination.nextPage > 1 ? '-' + pagination.nextPage : ''}}.html">Next</a>
     {{/if}}
 </div>
+
 </section>
 INDEX (homepage)
