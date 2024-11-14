@@ -219,13 +219,6 @@ async function fetchCsv(url) {
 }
 
 function sanitizeSlug(slug, maxLength = 50) {
-    // Log the initial slug
-    console.log('Initial slug:', slug);
-
-    // Check if the slug can be processed (contains only Latin characters and spaces)
-    const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
-
-    // Process the slug directly without special character mapping
     slug = slug
         .toLowerCase()
         .replace(/[\s]+/g, '-') // Replace spaces with hyphens
@@ -233,14 +226,9 @@ function sanitizeSlug(slug, maxLength = 50) {
         .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
         .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
 
-    console.log('After processing slug:', slug);
-
-    // Trim to maxLength if necessary
     if (slug.length > maxLength) {
         slug = slug.substring(0, maxLength).replace(/-+$/, ''); // Remove trailing hyphens
     }
-
-    console.log('Final slug:', slug);
     return slug;
 }
 
