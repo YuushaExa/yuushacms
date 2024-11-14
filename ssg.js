@@ -97,11 +97,63 @@ async function preloadTemplates() {
 }
 
 // Function to render a template with context and partials
+// Helper function to check if a is greater than b
+function gt(a, b) {
+    return a > b;
+}
+
+// Helper function to check if a is less than b
+function lt(a, b) {
+    return a < b;
+}
+
+// Helper function to add two numbers
+function add(a, b) {
+    return a + b;
+}
+
+// Helper function to subtract b from a
+function subtract(a, b) {
+    return a - b;
+}
+
+// Store helpers in an object
+const helpers = {
+    gt,
+    lt,
+    add,
+    subtract
+};
+
+// Function to evaluate conditions
+function evaluateCondition(condition, context) {
+    // Replace variable names and helper calls with their values
+    const replacedCondition = condition.replace(/(\w+)\s*$([^)]+)$/g, (match, funcName, args) => {
+        if (helpers[funcName]) {
+            const argValues = args.split(',').map(arg => {
+                return context[arg.trim()] !== undefined ? context[arg.trim()] : arg.trim();
+            });
+            return `helpers.${funcName}(${argValues.join(',')})`; // Call the helper function
+        }
+        return match; // Return the original match if not a helper
+    }).replace(/(\w+)/g, (match) => {
+        return context[match] !== undefined ? context[match] : match; // Replace with context value
+    });
+
+    // Evaluate the condition
+    try {
+        return eval(replacedCondition);
+    } catch (error) {
+        console.error(`Error evaluating condition: ${condition}`, error);
+        return false;
+    }
+}
+
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
     context.currentYear = new Date().getFullYear();
-    
+
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
@@ -123,17 +175,18 @@ async function renderTemplate(template, context = {}) {
             const renderedItems = await Promise.all(
                 items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
             );
-                       template = template.replace(fullMatch, renderedItems.join(''));
+            template = template.replace(fullMatch, renderedItems.join(''));
         } else {
             template = template.replace(fullMatch, '');
         }
     }
 
     // Render conditionals
-    const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
+    const conditionalMatches = [...template.matchAll(/{{#if\s+([\s\S]+?)}}([\s\S]*?){{\/if}}/g)];
     for (const match of conditionalMatches) {
         const [fullMatch, condition, innerTemplate] = match;
-        template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
+        const evaluatedCondition = evaluateCondition(condition, context);
+        template = template.replace(fullMatch, evaluatedCondition ? innerTemplate : '');
     }
 
     // Render variables
@@ -143,51 +196,9 @@ async function renderTemplate(template, context = {}) {
         template = template.replace(fullMatch, context[key] || '');
     }
 
-    // Helper function to check if a is greater than b
-function gt(a, b) {
-    return a > b;
-}
-// Helper function to check if a is less than b
-function lt(a, b) {
-    return a < b;
-}
-// Helper function to add two numbers
-function add(a, b) {
-    return a + b;
-}
-// Helper function to subtract b from a
-function subtract(a, b) {
-    return a - b;
-}
-const helpers = {
-    gt,
-    lt,
-    add,
-    subtract
-};
-    
-// Function to evaluate conditions
-function evaluateCondition(condition, context) {
-    // Replace variable names with their values from the context
-    const replacedCondition = condition.replace(/(\w+)/g, (match) => {
-        // Check if the match is a helper function
-        if (helpers[match]) {
-            return `helpers.${match}`; // Use the helper function
-        }
-        return context[match] !== undefined ? context[match] : match; // Replace with context value
-    });
-
-    // Evaluate the condition
-    try {
-        return eval(replacedCondition);
-    } catch (error) {
-        console.error(`Error evaluating condition: ${condition}`, error);
-        return false;
-    }
-}
-
     return template;
 }
+
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
