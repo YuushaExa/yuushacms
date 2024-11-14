@@ -219,19 +219,7 @@ async function fetchCsv(url) {
 }
 
 function sanitizeSlug(slug, maxLength = 50) {
-    // Function to replace spaces with hyphens and remove invalid characters
-    const processSlug = (str) => {
-        return str
-            .replace(/[\s]+/g, '-') // Replace spaces with hyphens
-            .replace(/[^\p{L}\p{N}-]+/gu, '') // Allow letters (including non-Latin), numbers, and hyphens
-            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-            .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
-    };
 
-    // Process the slug
-    slug = processSlug(slug);
-
-    // Trim to maxLength if necessary
     if (slug.length > maxLength) {
         slug = slug.substring(0, maxLength).replace(/-+$/, ''); // Remove trailing hyphens
     }
