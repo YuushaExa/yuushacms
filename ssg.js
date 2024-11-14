@@ -239,7 +239,6 @@ function sanitizeSlug(slug, maxLength = 50) {
 
     // Replace special characters with their corresponding Latin characters
     slug = replaceSpecialChars(slug);
-    console.log('After replacing special characters:', slug);
 
     if (isLatin) {
         // Process the slug if it contains only Latin characters
