@@ -220,21 +220,7 @@ async function fetchCsv(url) {
 
 function sanitizeSlug(slug, maxLength = 50) {
     // Define the mapping of Cyrillic characters to Latin characters
-const specialCharMap = {
-    "в": "v",
-    "е": "e",
-    "т": "t",
-    "о": "o",
-    "ц": "ts",
-    "к": "k",
-    "д": "d",
-    "ь": "", 
-    "я": "ya",
-    "л": "l",
-    "а": "a",
-    "К": "k",
-    "Ц": "Ts"
-};
+const specialCharMap = require('./plugins/charmap.json');
 
 // Create a regex pattern from the keys of the specialCharMap
 const specialCharPattern = new RegExp(Object.keys(specialCharMap).join('|'), 'g');
