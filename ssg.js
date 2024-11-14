@@ -220,12 +220,20 @@ async function fetchCsv(url) {
 
 function sanitizeSlug(slug, maxLength = 50) {
     // Define the mapping of Cyrillic characters to Latin characters
-    const specialCharMap = {
-        "в": "v",
-        "е": "e",
-        "т": "t",
-        "о": "o"
-    };
+ const specialCharMap = {
+    "в": "v",
+    "е": "e",
+    "т": "t",
+    "о": "o",
+    "ц": "ts",
+    "к": "k",
+    "д": "d",
+    "ь": "", 
+    "я": "ya",
+    "л": "l",
+    "а": "a"
+};
+
 
     // Function to replace characters based on the specialCharMap
     const replaceSpecialChars = (str) => {
