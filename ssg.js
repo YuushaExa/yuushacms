@@ -34,6 +34,23 @@ const config = {
 };
 const POSTS_PER_PAGE = 1; // Change this to the desired number of posts per page
 
+function generatePagination(currentPage, totalPages) {
+    const context = {
+        currentPage: currentPage,         // The current page
+        totalPages: totalPages,           // The total number of pages
+        prevPageLink: currentPage > 1 ? `index-${currentPage - 1}.html` : null,  // Previous page link, null if on the first page
+        nextPageLink: currentPage < totalPages ? `index-${currentPage + 1}.html` : null  // Next page link, null if on the last page
+    };
+
+    // Log the context to make sure it looks correct
+    console.log('Pagination context:', context);
+
+    // Now you can pass the context to the renderTemplate function
+    const template = `...`;  // Your template string
+    renderTemplate(template, context);  // Render the template with the context
+}
+
+
 const layoutCache = {};
 const partialCache = {};
 
