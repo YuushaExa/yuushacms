@@ -4,16 +4,17 @@
     {{ list }}
 
 <div class="pagination">
-    {{#if prevPage}}
-        <a href="index{{prevPage > 1 ? '-' + prevPage : ''}}.html">Previous</a>
+    {{#if prevPageLink}}
+        <a href="{{prevPageLink}}">Previous</a>
     {{/if}}
 
     <span>Page {{currentPage}} of {{totalPages}}</span>
 
-    {{#if nextPage}}
-        <a href="index{{nextPage > 1 ? '-' + nextPage : ''}}.html">Next</a>
+    {{#if nextPageLink}}
+        <a href="{{nextPageLink}}">Next</a>
     {{/if}}
 </div>
+
 
 
 </section>
