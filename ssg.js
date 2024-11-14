@@ -145,6 +145,12 @@ async function renderTemplate(template, context = {}) {
 
     context.currentYear = new Date().getFullYear();
 
+const context = {
+    pageNumber: 1,
+    totalPages: 5,
+    helpers: helpers // Ensure helpers are available in context
+};
+    
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
