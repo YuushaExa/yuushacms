@@ -24,7 +24,7 @@ const config = {
         exclude: []  // Specify partials to exclude
     },
     json: {
-        include: ["https://raw.githubusercontent.com/YuushaExa/v/refs/heads/main/Testcsvjson/data.json"], // Specify JSON files to include "https://raw.githubusercontent.com/YuushaExa/v/refs/heads/main/Testcsvjson/data.json"
+        include: ["], // Specify JSON files to include "https://raw.githubusercontent.com/YuushaExa/v/refs/heads/main/Testcsvjson/data.json"
         exclude: []   // Specify JSON files to exclude
     },
     csv: {
@@ -32,7 +32,7 @@ const config = {
         exclude: []   // Specify CSV files to exclude
     }
 };
-const POSTS_PER_PAGE = 5; // Change this to the desired number of posts per page
+const POSTS_PER_PAGE = 1; // Change this to the desired number of posts per page
 
 const layoutCache = {};
 const partialCache = {};
