@@ -3,17 +3,14 @@
     <p>Check out my latest posts:</p>
     {{ list }}
 
-<div class="pagination">
-    {{#if prevPageLink}}
-        <a href="{{prevPageLink}}">Previous</a>
-    {{/if}}
+{{#if prevPageLink}}
+    <a href="{{prevPageLink}}">Previous Page</a>
+{{/if}}
 
-    <span>Page {{currentPage}} of {{totalPages}}</span>
+{{#if nextPageLink}}
+    <a href="{{nextPageLink}}">Next Page</a>
+{{/if}}
 
-    {{#if nextPageLink}}
-        <a href="{{nextPageLink}}">Next</a>
-    {{/if}}
-</div>
 
 
 </section>
