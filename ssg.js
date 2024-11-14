@@ -227,7 +227,9 @@ function sanitizeSlug(slug, maxLength = 50) {
 
     // Function to replace characters based on the specialCharMap
     const replaceSpecialChars = (str) => {
-        return str.replace(specialCharPattern, (match) => specialCharMap[match]);
+        return str.replace(specialCharPattern, (match) => {
+            return specialCharMap[match] !== undefined ? specialCharMap[match] : match; // Return original if not found
+        });
     };
 
     // Log the initial slug
@@ -268,6 +270,7 @@ function sanitizeSlug(slug, maxLength = 50) {
     console.log('Final slug:', slug);
     return slug;
 }
+
 
 
 
