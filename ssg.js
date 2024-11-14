@@ -97,44 +97,29 @@ async function preloadTemplates() {
 }
 
 // Function to render a template with context and partials
-// Helper function to check if a is greater than b
-function gt(a, b) {
-    return a > b;
-}
-
-// Helper function to check if a is less than b
-function lt(a, b) {
-    return a < b;
-}
-
-// Helper function to add two numbers
-function add(a, b) {
-    return a + b;
-}
-
-// Helper function to subtract b from a
-function subtract(a, b) {
-    return a - b;
-}
-
-// Store helpers in an object
 const helpers = {
-    gt,
-    lt,
-    add,
-    subtract
+    gt: (a, b) => a > b,
+    lt: (a, b) => a < b,
+    add: (a, b) => a + b,
+    subtract: (a, b) => a - b
 };
 
 // Function to evaluate conditions
 function evaluateCondition(condition, context) {
-    // Replace helper function calls with appropriate JavaScript code
-    const replacedCondition = condition.replace(/(\w+)\(([^)]+)\)/g, (match, funcName, args) => {
-        if (helpers[funcName]) {
-            const argValues = args.split(',').map(arg => {
+    // Regex to match helper functions like (lt 1 6481)
+    const helperFunctionRegex = /\b(\w+)\s*\(([^)]+)\)|\((\w+)\s+([^)]+)\)/g;
+
+    const replacedCondition = condition.replace(helperFunctionRegex, (match, funcName, args, altFuncName, altArgs) => {
+        // Use the appropriate function name and arguments depending on which part matched
+        const functionName = funcName || altFuncName;
+        const argumentsList = args || altArgs;
+
+        if (helpers[functionName]) {
+            const argValues = argumentsList.split(/\s*,?\s+/).map(arg => {
                 const trimmedArg = arg.trim();
-                return context[trimmedArg] !== undefined ? context[trimmedArg] : trimmedArg;
+                return context[trimmedArg] !== undefined ? context[trimmedArg] : isNaN(trimmedArg) ? `'${trimmedArg}'` : trimmedArg;
             });
-            return `helpers.${funcName}(${argValues.join(', ')})`; // Call the helper function
+            return `helpers.${functionName}(${argValues.join(', ')})`;
         }
         return match;
     });
@@ -152,6 +137,7 @@ function evaluateCondition(condition, context) {
         return false;
     }
 }
+
 
 
 async function renderTemplate(template, context = {}) {
