@@ -228,9 +228,15 @@ async function generateIndex(posts, pageNumber = 1) {
     const paginatedPosts = posts.slice(startIndex, endIndex);
 
     const listHTML = await renderTemplate(listTemplate, { posts: paginatedPosts });
-    const renderedContent = await renderTemplate(indexTemplate, { list: listHTML, pageNumber, totalPages: Math.ceil(posts.length / POSTS_PER_PAGE) });
+    const renderedContent = await renderTemplate(indexTemplate, {
+        list: listHTML,
+        pageNumber,
+        totalPages: Math.ceil(posts.length / POSTS_PER_PAGE)
+    });
+
     return await renderWithBase(renderedContent, { title: `Home - Page ${pageNumber}` });
 }
+
 
 
 // Function to extract data from CSV files
