@@ -163,7 +163,6 @@ async function renderTemplate(template, context = {}) {
     const nextPageLink = context.nextPageLink || '';
 
     // Log context for debugging
-    console.log("Rendering template with context:", context);
     context.currentYear = new Date().getFullYear();
 
     // Render partials
