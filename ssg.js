@@ -219,17 +219,26 @@ async function fetchCsv(url) {
 }
 
 function sanitizeSlug(slug, maxLength = 50) {
-    // Check if the slug can be processed (contains only Latin characters and spaces)
-   const specialCharMap = {
+    // Define the mapping of Cyrillic characters to Latin characters
+    const specialCharMap = {
         "в": "v",
         "е": "e",
         "т": "t",
         "о": "o"
     };
 
-    // Replace special characters with their corresponding words
-    slug = slug.replace(/[${}%&<]/g, (match) => specialCharMap[match]);
+    // Function to replace characters based on the specialCharMap
+    const replaceSpecialChars = (str) => {
+        return str.replace(/[веито]/g, (match) => specialCharMap[match]);
+    };
 
+    // Check if the slug can be processed (contains only Latin characters and spaces)
+    const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
+
+    // Replace special characters with their corresponding Latin characters
+    slug = replaceSpecialChars(slug);
+
+    if (isLatin) {
         // Process the slug if it contains only Latin characters
         slug = slug
             .toLowerCase()
@@ -237,7 +246,15 @@ function sanitizeSlug(slug, maxLength = 50) {
             .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
             .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
             .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
-
+    } else {
+        // For non-Latin characters, we already replaced them above
+        slug = slug
+            .toLowerCase()
+            .replace(/[\s]+/g, '-') // Replace spaces with hyphens
+            .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
+            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+            .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
+    }
 
     // Trim to maxLength if necessary
     if (slug.length > maxLength) {
@@ -246,6 +263,7 @@ function sanitizeSlug(slug, maxLength = 50) {
 
     return slug;
 }
+
 
 
 // Function to generate Markdown files from CSV data
