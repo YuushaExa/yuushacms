@@ -143,6 +143,49 @@ async function renderTemplate(template, context = {}) {
         template = template.replace(fullMatch, context[key] || '');
     }
 
+    // Helper function to check if a is greater than b
+function gt(a, b) {
+    return a > b;
+}
+// Helper function to check if a is less than b
+function lt(a, b) {
+    return a < b;
+}
+// Helper function to add two numbers
+function add(a, b) {
+    return a + b;
+}
+// Helper function to subtract b from a
+function subtract(a, b) {
+    return a - b;
+}
+const helpers = {
+    gt,
+    lt,
+    add,
+    subtract
+};
+    
+// Function to evaluate conditions
+function evaluateCondition(condition, context) {
+    // Replace variable names with their values from the context
+    const replacedCondition = condition.replace(/(\w+)/g, (match) => {
+        // Check if the match is a helper function
+        if (helpers[match]) {
+            return `helpers.${match}`; // Use the helper function
+        }
+        return context[match] !== undefined ? context[match] : match; // Replace with context value
+    });
+
+    // Evaluate the condition
+    try {
+        return eval(replacedCondition);
+    } catch (error) {
+        console.error(`Error evaluating condition: ${condition}`, error);
+        return false;
+    }
+}
+
     return template;
 }
 
