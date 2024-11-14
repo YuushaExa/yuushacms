@@ -218,21 +218,20 @@ async function generateIndex(posts, pageNumber = 1) {
     const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
 
     // Prepare pagination data
-    const paginationData = {
-        currentPage: pageNumber,
-        totalPages: totalPages,
-        prevPage: pageNumber > 1 ? pageNumber - 1 : null,
-        nextPage: pageNumber < totalPages ? pageNumber + 1 : null
-    };
+    const prevPage = pageNumber > 1 ? pageNumber - 1 : null;
+    const nextPage = pageNumber < totalPages ? pageNumber + 1 : null;
+
+    // Generate the URLs for the pagination
+    const prevPageLink = prevPage ? `index${prevPage > 1 ? '-' + prevPage : ''}.html` : null;
+    const nextPageLink = nextPage ? `index${nextPage > 1 ? '-' + nextPage : ''}.html` : null;
 
     const renderedContent = await renderTemplate(indexTemplate, {
         list: listHTML,
         pageNumber,
         totalPages,
-        pagination: paginationData,  // Pass pagination object to the template
-        prevPage: paginationData.prevPage,  // Pass prevPage and nextPage individually
-        nextPage: paginationData.nextPage,
-        currentPage: paginationData.currentPage
+        prevPageLink,
+        nextPageLink,
+        currentPage: pageNumber
     });
 
     return await renderWithBase(renderedContent, { title: `Home - Page ${pageNumber}` });
