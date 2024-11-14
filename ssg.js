@@ -98,9 +98,25 @@ async function preloadTemplates() {
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
-
     context.currentYear = new Date().getFullYear();
-    
+
+    // Skip rendering for code blocks
+    const codeBlockMatches = [...template.matchAll(/```([\s\S]*?)```/g)];
+    const codeBlocks = {};
+    codeBlockMatches.forEach((match, index) => {
+        const [fullMatch] = match;
+        const placeholder = `{{codeBlock${index}}}`;
+        codeBlocks[placeholder] = fullMatch; // Store the code block
+        template = template.replace(fullMatch, placeholder); // Replace with placeholder
+    });
+
+    // Render context variables (e.g., _currentYear)
+    const contextVariableMatches = [...template.matchAll(/{{\s*_(\w+)\s*}}/g)];
+    for (const match of contextVariableMatches) {
+        const [fullMatch, key] = match;
+        template = template.replace(fullMatch, context[key] || '');
+    }
+
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
@@ -122,7 +138,7 @@ async function renderTemplate(template, context = {}) {
             const renderedItems = await Promise.all(
                 items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
             );
-                       template = template.replace(fullMatch, renderedItems.join(''));
+            template = template.replace(fullMatch, renderedItems.join(''));
         } else {
             template = template.replace(fullMatch, '');
         }
@@ -135,15 +151,21 @@ async function renderTemplate(template, context = {}) {
         template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
     }
 
-    // Render variables
-    const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
-    for (const match of variableMatches) {
+    // Render user-defined variables (e.g., user.currentYear)
+    const userVariableMatches = [...template.matchAll(/{{\s*user\.(\w+)\s*}}/g)];
+    for (const match of userVariableMatches) {
         const [fullMatch, key] = match;
         template = template.replace(fullMatch, context[key] || '');
     }
 
+    // Restore code blocks
+    Object.keys(codeBlocks).forEach(placeholder => {
+        template = template.replace(placeholder, codeBlocks[placeholder]);
+    });
+
     return template;
 }
+
 
 async function renderWithBase(templateContent, context = {}) {
     const baseTemplate = layoutCache['base'] || await readFile(layoutsDir, 'base');
