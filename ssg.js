@@ -107,6 +107,11 @@ const helpers = {
 // Function to evaluate conditions
 // Function to evaluate conditions
 function evaluateCondition(condition, context) {
+    // Ensure we handle null or undefined values in the condition
+    if (condition === null || condition === undefined) {
+        return false;
+    }
+
     // Regex to match helper functions like (lt 1 6481)
     const helperFunctionRegex = /\b(\w+)\s*\(([^)]+)\)|\((\w+)\s+([^)]+)\)/g;
 
@@ -118,12 +123,7 @@ function evaluateCondition(condition, context) {
         if (helpers[functionName]) {
             const argValues = argumentsList.split(/\s*,?\s+/).map(arg => {
                 const trimmedArg = arg.trim();
-                // Log and check for undefined values
-                const contextValue = context[trimmedArg];
-                if (contextValue === undefined) {
-                    console.warn(`Undefined value for ${trimmedArg} in condition`);
-                }
-                return contextValue !== undefined ? contextValue : isNaN(trimmedArg) ? `'${trimmedArg}'` : trimmedArg;
+                return context[trimmedArg] !== undefined ? context[trimmedArg] : isNaN(trimmedArg) ? `'${trimmedArg}'` : trimmedArg;
             });
             return `helpers.${functionName}(${argValues.join(', ')})`;
         }
@@ -132,16 +132,8 @@ function evaluateCondition(condition, context) {
 
     // Replace variable names with their values from the context
     const finalCondition = replacedCondition.replace(/\b(\w+)\b/g, (match) => {
-        const contextValue = context[match];
-        // If the variable is not defined in the context, log it
-        if (contextValue === undefined) {
-            console.warn(`Undefined variable: ${match}`);
-        }
-        return contextValue !== undefined ? contextValue : match;
+        return context[match] !== undefined ? context[match] : match;
     });
-
-    // Log the final condition before evaluating
-    console.log(`Evaluating condition: ${finalCondition}`);
 
     // Evaluate the condition safely
     try {
