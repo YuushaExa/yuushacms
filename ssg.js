@@ -231,13 +231,14 @@ function sanitizeSlug(slug, maxLength = 50) {
     "ь": "", 
     "я": "ya",
     "л": "l",
-    "а": "a"
+    "а": "a",
+    "К": "k"
 };
 
 
     // Function to replace characters based on the specialCharMap
     const replaceSpecialChars = (str) => {
-        return str.replace(/[веитоцкдьял]/g, (match) => specialCharMap[match]);
+        return str.replace(/[веитоцкКдьял]/g, (match) => specialCharMap[match]);
     };
 
     // Check if the slug can be processed (contains only Latin characters and spaces)
