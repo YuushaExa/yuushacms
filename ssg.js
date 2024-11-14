@@ -219,15 +219,17 @@ async function fetchCsv(url) {
 }
 
 function sanitizeSlug(slug, maxLength = 50) {
-
-        // Process the slug if it contains only Latin characters
-        slug = slug
-            .toLowerCase()
+    // Function to replace spaces with hyphens and remove invalid characters
+    const processSlug = (str) => {
+        return str
             .replace(/[\s]+/g, '-') // Replace spaces with hyphens
-            .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
+            .replace(/[^\w-]+/g, '') // Remove invalid characters
             .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
             .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
+    };
 
+    // Process the slug
+    slug = processSlug(slug);
 
     // Trim to maxLength if necessary
     if (slug.length > maxLength) {
@@ -236,8 +238,6 @@ function sanitizeSlug(slug, maxLength = 50) {
 
     return slug;
 }
-
-
 
 
 // Function to generate Markdown files from CSV data
