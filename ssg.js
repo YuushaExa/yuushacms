@@ -104,11 +104,9 @@ const helpers = {
     subtract: (a, b) => a - b
 };
 
-// Function to evaluate conditions
-// Function to evaluate conditions
 function evaluateCondition(condition, context) {
-    // Check if the condition is falsy (null, undefined, or empty string)
-    if (!condition) {
+    // If condition is falsy (null, undefined, empty string, etc.), return false directly
+    if (!condition || condition === 'null') {
         return false;
     }
 
@@ -147,16 +145,16 @@ function evaluateCondition(condition, context) {
 
 
 
-
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-   const prevPageLink = context.prevPageLink || '';
-    const nextPageLink = context.nextPageLink || '';
+    // Ensure default empty values if not found in context
+    context.prevPageLink = context.prevPageLink || '';  // Default to empty string if not set
+    context.nextPageLink = context.nextPageLink || '';  // Default to empty string if not set
 
-    // Debugging: Log the values of prevPageLink and nextPageLink
-    console.log('prevPageLink:', prevPageLink);
-    console.log('nextPageLink:', nextPageLink);
+    // Log to check values
+    console.log('prevPageLink:', context.prevPageLink);
+    console.log('nextPageLink:', context.nextPageLink);
 
     // Continue with your existing template rendering logic
     // Add default current year to context
