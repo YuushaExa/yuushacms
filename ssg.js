@@ -159,11 +159,19 @@ function evaluateCondition(condition, context) {
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
- const prevPageLink = context.prevPageLink || '';
+    // Ensure default empty values if not found in context
+    const prevPageLink = context.prevPageLink || '';
     const nextPageLink = context.nextPageLink || '';
 
     // Log context for debugging
+    console.log("Rendering template with context:", context);
+
+    // Add default current year to context
     context.currentYear = new Date().getFullYear();
+    
+    // Update the context with the default values
+    context.prevPageLink = prevPageLink;
+    context.nextPageLink = nextPageLink;
 
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
