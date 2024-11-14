@@ -219,51 +219,28 @@ async function fetchCsv(url) {
 }
 
 function sanitizeSlug(slug, maxLength = 50) {
-    // Define the mapping of Cyrillic characters to Latin characters
-    const specialCharMap = require('./plugins/charmap.json');
-
-    // Create a regex pattern from the keys of the specialCharMap
-    const specialCharPattern = new RegExp(Object.keys(specialCharMap).join('|'), 'g');
-
-    // Function to replace characters based on the specialCharMap
-    const replaceSpecialChars = (str) => {
-        return str.replace(specialCharPattern, (match) => {
-            return specialCharMap[match] !== undefined ? specialCharMap[match] : match; // Return original if not found
-        });
-    };
-
-
+    // Log the initial slug
+    console.log('Initial slug:', slug);
 
     // Check if the slug can be processed (contains only Latin characters and spaces)
     const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
 
-    // Replace special characters with their corresponding Latin characters
-    slug = replaceSpecialChars(slug);
+    // Process the slug directly without special character mapping
+    slug = slug
+        .toLowerCase()
+        .replace(/[\s]+/g, '-') // Replace spaces with hyphens
+        .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
+        .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
+        .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
 
-    if (isLatin) {
-        // Process the slug if it contains only Latin characters
-        slug = slug
-            .toLowerCase()
-            .replace(/[\s]+/g, '-') // Replace spaces with hyphens
-            .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
-            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-            .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
-    } else {
-        // For non-Latin characters, we already replaced them above
-        slug = slug
-            .toLowerCase()
-            .replace(/[\s]+/g, '-') // Replace spaces with hyphens
-            .replace(/[^\w-]+/g, '-') // Replace invalid characters with hyphens
-            .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
-            .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
-    }
-
+    console.log('After processing slug:', slug);
 
     // Trim to maxLength if necessary
     if (slug.length > maxLength) {
         slug = slug.substring(0, maxLength).replace(/-+$/, ''); // Remove trailing hyphens
     }
 
+    console.log('Final slug:', slug);
     return slug;
 }
 
