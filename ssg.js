@@ -229,11 +229,15 @@ async function generateIndex(posts, pageNumber = 1) {
         list: listHTML,
         pageNumber,
         totalPages,
-        pagination: paginationData // Include pagination data in the context
+        pagination: paginationData,  // Pass pagination object to the template
+        prevPage: paginationData.prevPage,  // Pass prevPage and nextPage individually
+        nextPage: paginationData.nextPage,
+        currentPage: paginationData.currentPage
     });
 
     return await renderWithBase(renderedContent, { title: `Home - Page ${pageNumber}` });
 }
+
 
 
 
