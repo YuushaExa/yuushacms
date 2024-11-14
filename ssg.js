@@ -32,6 +32,7 @@ const config = {
         exclude: []   // Specify CSV files to exclude
     }
 };
+const POSTS_PER_PAGE = 5; // Change this to the desired number of posts per page
 
 const layoutCache = {};
 const partialCache = {};
@@ -157,13 +158,20 @@ async function generateSingleHTML(title, content, fileName) {
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
 
-async function generateIndex(posts) {
+async function generateIndex(posts, pageNumber = 1) {
     const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
     const indexTemplate = layoutCache['index'] || await readFile(layoutsDir, 'index');
-    const listHTML = await renderTemplate(listTemplate, { posts });
-    const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
-    return await renderWithBase(renderedContent, { title: 'Home' });
+
+    // Calculate the start and end index for the posts to display on this page
+    const startIndex = (pageNumber - 1) * POSTS_PER_PAGE;
+    const endIndex = startIndex + POSTS_PER_PAGE;
+    const paginatedPosts = posts.slice(startIndex, endIndex);
+
+    const listHTML = await renderTemplate(listTemplate, { posts: paginatedPosts });
+    const renderedContent = await renderTemplate(indexTemplate, { list: listHTML, pageNumber, totalPages: Math.ceil(posts.length / POSTS_PER_PAGE) });
+    return await renderWithBase(renderedContent, { title: `Home - Page ${pageNumber}` });
 }
+
 
 // Function to extract data from CSV files
 async function extractCsvDataFromLayouts() {
@@ -303,8 +311,6 @@ async function generateMarkdownFromJson(data) {
     }
 }
 
-
-// Main content processing function
 // Main content processing function
 async function processContent() {
     await extractJsonDataFromLayouts(); // Extract JSON data from layouts
@@ -369,7 +375,12 @@ async function processContent() {
 
     const indexHTML = await generateIndex(posts);
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
-
+       // Generate paginated index pages
+    const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+        const indexHTML = await generateIndex(posts, pageNumber);
+        await fs.writeFile(`${outputDir}/index${pageNumber > 1 ? `-${pageNumber}` : ''}.html`, indexHTML);
+    }
     // Calculate total build time
     const totalEndTime = Date.now();
     const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
