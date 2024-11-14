@@ -24,7 +24,7 @@ const config = {
         exclude: []  // Specify partials to exclude
     },
     json: {
-        include: [], // Specify JSON files to include "https://raw.githubusercontent.com/YuushaExa/v/refs/heads/main/Testcsvjson/data.json"
+        include: ["https://raw.githubusercontent.com/YuushaExa/v/refs/heads/main/games.json"], // Specify JSON files to include "https://raw.githubusercontent.com/YuushaExa/v/refs/heads/main/Testcsvjson/data.json"
         exclude: []   // Specify JSON files to exclude
     },
     csv: {
