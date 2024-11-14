@@ -220,35 +220,26 @@ async function fetchCsv(url) {
 
 function sanitizeSlug(slug, maxLength = 50) {
     // Define the mapping of Cyrillic characters to Latin characters
-const specialCharMap = {
-    "в": "v",
-    "е": "e",
-    "т": "t",
-    "о": "o",
-    "ц": "ts",
-    "к": "k",
-    "д": "d",
-    "ь": "", 
-    "я": "ya",
-    "л": "l",
-    "а": "a",
-    "К": "k",
-    "Ц": "Ts"
-};
+    const specialCharMap = require('./plugins/charmap.json');
 
-// Create a regex pattern from the keys of the specialCharMap
-const specialCharPattern = new RegExp(Object.keys(specialCharMap).join('|'), 'g');
+    // Create a regex pattern from the keys of the specialCharMap
+    const specialCharPattern = new RegExp(Object.keys(specialCharMap).join('|'), 'g');
 
-// Function to replace characters based on the specialCharMap
-const replaceSpecialChars = (str) => {
-    return str.replace(specialCharPattern, (match) => specialCharMap[match]);
-};
-    
+    // Function to replace characters based on the specialCharMap
+    const replaceSpecialChars = (str) => {
+        return str.replace(specialCharPattern, (match) => {
+            return specialCharMap[match] !== undefined ? specialCharMap[match] : match; // Return original if not found
+        });
+    };
+
+
+
     // Check if the slug can be processed (contains only Latin characters and spaces)
     const isLatin = /^[\u0000-\u007F\s]+$/.test(slug);
 
     // Replace special characters with their corresponding Latin characters
     slug = replaceSpecialChars(slug);
+    console.log('After replacing special characters:', slug);
 
     if (isLatin) {
         // Process the slug if it contains only Latin characters
@@ -267,6 +258,7 @@ const replaceSpecialChars = (str) => {
             .replace(/--+/g, '-') // Replace multiple hyphens with a single hyphen
             .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
     }
+
 
     // Trim to maxLength if necessary
     if (slug.length > maxLength) {
