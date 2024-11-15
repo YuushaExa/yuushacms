@@ -179,8 +179,8 @@ async function generateIndex(posts, pageNumber = 1) {
     const listHTML = await renderTemplate(listTemplate, { posts: pagePosts });
 
     // Calculate previous and next page links
-    const prevPage = pageNumber > 1 ? `/index-${pageNumber - 1}.html` : null;
-    const nextPage = pageNumber < totalPages ? `/index-${pageNumber + 1}.html` : null;
+    const prevPage = pageNumber > 1 ? `/yuushacms/index-${pageNumber - 1}.html` : null;
+    const nextPage = pageNumber < totalPages ? `/yuushacms/index-${pageNumber + 1}.html` : null;
 
     const renderedContent = await renderTemplate(indexTemplate, { 
         list: listHTML, 
