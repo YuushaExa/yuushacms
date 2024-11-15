@@ -95,7 +95,16 @@ async function preloadTemplates() {
     }
 }
 
+
+async function exampleFunction() {
+    // Declare the context object inside the function
+    const context = {};
     context.currentYear = new Date().getFullYear();
+
+}
+
+// Call the function
+exampleFunction();
 
 
 // Function to render a template with context and partials
