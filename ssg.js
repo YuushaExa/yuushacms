@@ -95,23 +95,18 @@ async function preloadTemplates() {
     }
 }
 
+const config = {
+    currentYear: new Date().getFullYear(),
+};
 
-async function exampleFunction() {
-    // Declare the context object inside the function
-    const context = {};
-    context.currentYear = new Date().getFullYear();
-
-}
-
-// Call the function
-exampleFunction();
+module.exports = config;
 
 
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    
+
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
