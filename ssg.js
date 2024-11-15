@@ -95,20 +95,12 @@ async function preloadTemplates() {
     }
 }
 
-// Create a global object
-global.appGlobals = {
-    currentYear: new Date().getFullYear(),
-};
-
-// Access it in your renderTemplate function
-context.currentYear = global.appGlobals.currentYear;
-
-
 
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
+        context.currentYear = new Date().getFullYear();
 
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
