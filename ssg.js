@@ -278,7 +278,6 @@ async function processContent() {
 
         const postEndTime = Date.now(); // End time for post creation
         const postDuration = (postEndTime - postStartTime) / 1000; // Duration in seconds
-        console.log(`Created post: ${postTitle} in ${postDuration.toFixed(4)} seconds`);
     }
 
     // Generate paginated index pages
