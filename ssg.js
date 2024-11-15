@@ -35,6 +35,12 @@ const config = {
         exclude: []   // Specify CSV files to exclude
     }
 };
+const config = {
+    pagination: {
+        postsPerPage: 10 // Adjust this value as needed
+    },
+    // other config settings...
+};
 
 const layoutCache = {};
 const partialCache = {};
@@ -161,21 +167,65 @@ async function generateSingleHTML(title, content, fileName) {
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
 
-async function generateIndex(posts) {
+async function generateIndex(posts, pageNumber = 1) {
+    const postsPerPage = config.pagination.postsPerPage;
+    const totalPages = Math.ceil(posts.length / postsPerPage);
+    
+    // Slice the posts array to get the current page's posts
+    const pagePosts = posts.slice((pageNumber - 1) * postsPerPage, pageNumber * postsPerPage);
+    
     const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
     const indexTemplate = layoutCache['index'] || await readFile(layoutsDir, 'index');
-    const listHTML = await renderTemplate(listTemplate, { posts });
-    const renderedContent = await renderTemplate(indexTemplate, { list: listHTML });
+
+    // Render the list of posts for the current page
+    const listHTML = await renderTemplate(listTemplate, { posts: pagePosts });
+
+    // Render pagination links
+    const paginationLinks = generatePaginationLinks(pageNumber, totalPages);
+    
+    const renderedContent = await renderTemplate(indexTemplate, { 
+        list: listHTML, 
+        pagination: paginationLinks,
+        currentPage: pageNumber,
+        totalPages: totalPages 
+    });
+    
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
 
+// Function to generate pagination links
+function generatePaginationLinks(currentPage, totalPages) {
+    let links = '';
+
+    // Previous Page Link
+    if (currentPage > 1) {
+        links += `<a href="/index${currentPage - 1 === 1 ? '' : `-${currentPage - 1}`}.html">Previous</a> `;
+    }
+
+    // Page Number Links
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage) {
+            links += `<strong>${i}</strong> `;
+        } else {
+            links += `<a href="/index-${i}.html">${i}</a> `;
+        }
+    }
+
+    // Next Page Link
+    if (currentPage < totalPages) {
+        links += `<a href="/index-${currentPage + 1}.html">Next</a>`;
+    }
+
+    return links;
+}
+
+
 // Main content processing function
 async function processContent() {
-  await extractJsonDataFromLayouts(config); 
-    await extractCsvDataFromLayouts(config); 
+    await extractJsonDataFromLayouts(config);
+    await extractCsvDataFromLayouts(config);
+    
     const files = await fs.readdir(contentDir);
-
-    // Initialize an array to hold all markdown files
     const markdownFiles = [];
 
     // Traverse through the content directory
@@ -184,7 +234,6 @@ async function processContent() {
         const stats = await fs.stat(fullPath);
 
         if (stats.isDirectory()) {
-            // If it's a directory, read its contents
             const nestedFiles = await fs.readdir(fullPath);
             nestedFiles.forEach(nestedFile => {
                 if (nestedFile.endsWith('.md')) {
@@ -192,7 +241,6 @@ async function processContent() {
                 }
             });
         } else if (stats.isFile() && file.endsWith('.md')) {
-            // If it's a file and ends with .md, add it to the list
             markdownFiles.push(file);
         }
     }
@@ -201,7 +249,7 @@ async function processContent() {
 
     const posts = [];
     const skippedEntries = [];
-    const startTime = Date.now(); // Start total build time
+    const startTime = Date.now();
 
     // Process all collected markdown files
     for (const file of markdownFiles) {
@@ -209,36 +257,37 @@ async function processContent() {
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
 
-        // Check if the title is valid
         if (!data.title) {
             skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
-            continue; // Skip this entry if no title
+            continue;
         }
 
-        // Generate HTML for the post
-        const html = await generateSingleHTML(data.title, htmlContent, file); 
+        const html = await generateSingleHTML(data.title, htmlContent, file);
 
-        // Ensure the output directory exists
         const slug = file.replace('.md', '');
         const outputFilePath = path.join(outputDir, `${slug}.html`);
         const outputDirPath = path.dirname(outputFilePath);
-        await fs.ensureDir(outputDirPath); // Ensure the directory exists
+        await fs.ensureDir(outputDirPath);
 
         await fs.writeFile(outputFilePath, html);
-        
-        // Use the title from front matter or fallback to slug
-        const postTitle = data.title || slug.replace(/-/g, ' '); // Use slug as title if no front matter title
-        posts.push({ title: postTitle, url: `${slug}.html` }); 
+
+        const postTitle = data.title || slug.replace(/-/g, ' ');
+        posts.push({ title: postTitle, url: `${slug}.html` });
     }
 
-    const indexHTML = await generateIndex(posts);
-    await fs.writeFile(`${outputDir}/index.html`, indexHTML);
+    // Generate paginated index pages
+    const postsPerPage = config.pagination.postsPerPage;
+    const totalPages = Math.ceil(posts.length / postsPerPage);
 
-    // Calculate total build time
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+        const indexHTML = await generateIndex(posts, pageNumber);
+        const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
+        await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
+    }
+
     const totalEndTime = Date.now();
     const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
-    
-    // Log final statistics
+
     console.log('--- Build Statistics ---');
     console.log(`Total Entries Processed: ${markdownFiles.length}`);
     console.log(`Total Files Created: ${posts.length}`);
@@ -252,6 +301,7 @@ async function processContent() {
         console.log(`No entries were skipped.`);
     }
 }
+
 
 // Main SSG execution
 async function runSSG() {
