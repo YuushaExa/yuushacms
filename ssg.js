@@ -171,8 +171,8 @@ async function generateIndex(posts) {
 
 // Main content processing function
 async function processContent() {
-    await extractJsonDataFromLayouts(); // Extract JSON data from layouts
-    await extractCsvDataFromLayouts(); // Extract CSV data from layouts
+  await extractJsonDataFromLayouts(config); 
+    await extractCsvDataFromLayouts(config); 
     const files = await fs.readdir(contentDir);
 
     // Initialize an array to hold all markdown files
