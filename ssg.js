@@ -95,11 +95,14 @@ async function preloadTemplates() {
     }
 }
 
-const config = {
+// Create a global object
+global.appGlobals = {
     currentYear: new Date().getFullYear(),
 };
 
-module.exports = config;
+// Access it in your renderTemplate function
+context.currentYear = global.appGlobals.currentYear;
+
 
 
 // Function to render a template with context and partials
