@@ -170,9 +170,11 @@ async function generateIndex(posts) {
 }
 
 // Main content processing function
+const paginateSite = require('./pagination'); // Import pagination plugin
+
 async function processContent() {
-  await extractJsonDataFromLayouts(config); 
-    await extractCsvDataFromLayouts(config); 
+    await extractJsonDataFromLayouts(config);
+    await extractCsvDataFromLayouts(config);
     const files = await fs.readdir(contentDir);
 
     // Initialize an array to hold all markdown files
@@ -184,7 +186,6 @@ async function processContent() {
         const stats = await fs.stat(fullPath);
 
         if (stats.isDirectory()) {
-            // If it's a directory, read its contents
             const nestedFiles = await fs.readdir(fullPath);
             nestedFiles.forEach(nestedFile => {
                 if (nestedFile.endsWith('.md')) {
@@ -192,7 +193,6 @@ async function processContent() {
                 }
             });
         } else if (stats.isFile() && file.endsWith('.md')) {
-            // If it's a file and ends with .md, add it to the list
             markdownFiles.push(file);
         }
     }
@@ -209,40 +209,38 @@ async function processContent() {
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
 
-        // Check if the title is valid
         if (!data.title) {
             skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
             continue; // Skip this entry if no title
         }
 
         // Generate HTML for the post
-        const html = await generateSingleHTML(data.title, htmlContent, file); 
+        const html = await generateSingleHTML(data.title, htmlContent, file);
 
-        // Ensure the output directory exists
         const slug = file.replace('.md', '');
         const outputFilePath = path.join(outputDir, `${slug}.html`);
         const outputDirPath = path.dirname(outputFilePath);
         await fs.ensureDir(outputDirPath); // Ensure the directory exists
 
         await fs.writeFile(outputFilePath, html);
-        
-        // Use the title from front matter or fallback to slug
         const postTitle = data.title || slug.replace(/-/g, ' '); // Use slug as title if no front matter title
-        posts.push({ title: postTitle, url: `${slug}.html` }); 
+        posts.push({ title: postTitle, url: `${slug}.html` });
     }
 
+    // Now paginate the posts
+    await paginateSite(posts, 5, outputDir); // Paginate with 5 posts per page
+
+    // Generate index page
     const indexHTML = await generateIndex(posts);
     await fs.writeFile(`${outputDir}/index.html`, indexHTML);
 
-    // Calculate total build time
     const totalEndTime = Date.now();
     const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
-    
+
     // Log final statistics
     console.log('--- Build Statistics ---');
     console.log(`Total Entries Processed: ${markdownFiles.length}`);
     console.log(`Total Files Created: ${posts.length}`);
-    
     if (skippedEntries.length > 0) {
         console.log(`Skipped Entries:`);
         skippedEntries.forEach(entry => {
@@ -252,6 +250,7 @@ async function processContent() {
         console.log(`No entries were skipped.`);
     }
 }
+
 
 // Main SSG execution
 async function runSSG() {
