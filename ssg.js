@@ -34,16 +34,11 @@ const config = {
         include: ["https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"
         exclude: []   // Specify CSV files to exclude
     },
-    basePath: '/yuushacms',
      pagination: {
         postsPerPage: 10 // Adjust this value as needed
     }
 };
 
-
-function getBasePath() {
-    return config.basePath.endsWith('/') ? config.basePath : `${config.basePath}/`;  
-}
 
 const layoutCache = {};
 const partialCache = {};
@@ -183,24 +178,18 @@ async function generateIndex(posts, pageNumber = 1) {
     // Render the list of posts for the current page
     const listHTML = await renderTemplate(listTemplate, { posts: pagePosts });
 
-    // Get the base path dynamically from config
-    const basePath = getBasePath();
-
-    // Calculate previous and next page links, with the correct base path
-    const prevPage = pageNumber > 1 ? `${basePath}index-${pageNumber - 1}.html` : null;
-    const nextPage = pageNumber < totalPages ? `${basePath}index-${pageNumber + 1}.html` : null;
-
+    // Render pagination links
+    const paginationLinks = generatePaginationLinks(pageNumber, totalPages);
+    
     const renderedContent = await renderTemplate(indexTemplate, { 
         list: listHTML, 
+        pagination: paginationLinks,
         currentPage: pageNumber,
-        totalPages: totalPages,
-        prevPage: prevPage,
-        nextPage: nextPage
+        totalPages: totalPages 
     });
     
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
-
 
 // Function to generate pagination links
 function generatePaginationLinks(currentPage, totalPages) {
@@ -208,7 +197,7 @@ function generatePaginationLinks(currentPage, totalPages) {
 
     // Previous Page Link
     if (currentPage > 1) {
-        links += `<a href="/index${currentPage - 1 === 1 ? '' : `-${currentPage - 1}`}.html">Previous</a> `;
+        links += `<a href="/yuushacms/index${currentPage - 1 === 1 ? '' : `-${currentPage - 1}`}.html">Previous</a> `;
     }
 
     // Page Number Links
@@ -216,13 +205,13 @@ function generatePaginationLinks(currentPage, totalPages) {
         if (i === currentPage) {
             links += `<strong>${i}</strong> `;
         } else {
-            links += `<a href="/index-${i}.html">${i}</a> `;
+            links += `<a href="/yuushacms/index-${i}.html">${i}</a> `;
         }
     }
 
     // Next Page Link
     if (currentPage < totalPages) {
-        links += `<a href="/index-${currentPage + 1}.html">Next</a>`;
+        links += `<a href="/yuushacms/index-${currentPage + 1}.html">Next</a>`;
     }
 
     return links;
@@ -288,19 +277,11 @@ async function processContent() {
     const postsPerPage = config.pagination.postsPerPage;
     const totalPages = Math.ceil(posts.length / postsPerPage);
 
-for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
-    const indexHTML = await generateIndex(posts, pageNumber);
-    const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
-    
-    // Get the base path dynamically from the config
-    const basePath = getBasePath();
-
-    // Write the file under the base path (e.g., /yuushacms/)
-    const outputPath = path.join(outputDir, basePath, pageFileName);
-    await fs.ensureDir(path.dirname(outputPath));
-    await fs.writeFile(outputPath, indexHTML);
-}
-
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+        const indexHTML = await generateIndex(posts, pageNumber);
+        const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
+        await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
+    }
 
     const totalEndTime = Date.now();
     const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
