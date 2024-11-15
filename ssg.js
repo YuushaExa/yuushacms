@@ -36,6 +36,11 @@ const config = {
     }
 };
 
+const paginationConfig = {
+    postsPerPage: 5,  // Change this number to adjust how many posts per page
+};
+
+
 const layoutCache = {};
 const partialCache = {};
 
@@ -96,6 +101,43 @@ async function preloadTemplates() {
             }
         }
     }
+}
+
+
+// Function to generate the index page with pagination
+async function generatePaginatedIndex(posts) {
+    const { postsPerPage } = paginationConfig;
+    const totalPages = Math.ceil(posts.length / postsPerPage);
+
+    // Generate pages
+    const paginatedPages = [];
+    for (let page = 1; page <= totalPages; page++) {
+        const startIndex = (page - 1) * postsPerPage;
+        const endIndex = startIndex + postsPerPage;
+        const pagePosts = posts.slice(startIndex, endIndex);
+
+        const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
+        const indexTemplate = layoutCache['index'] || await readFile(layoutsDir, 'index');
+
+        // Create pagination links (Previous and Next)
+        const prevPage = page > 1 ? `/page/${page - 1}` : null;
+        const nextPage = page < totalPages ? `/page/${page + 1}` : null;
+
+        const listHTML = await renderTemplate(listTemplate, { posts: pagePosts });
+        const renderedContent = await renderTemplate(indexTemplate, {
+            list: listHTML,
+            prevPage: prevPage,
+            nextPage: nextPage,
+            currentPage: page,
+            totalPages: totalPages
+        });
+
+        // Render the final HTML with base template
+        const finalIndexHTML = await renderWithBase(renderedContent, { title: 'Home' });
+        paginatedPages.push({ page, html: finalIndexHTML });
+    }
+
+    return paginatedPages;
 }
 
 
@@ -171,20 +213,18 @@ async function generateIndex(posts) {
 
 // Main content processing function
 async function processContent() {
-  await extractJsonDataFromLayouts(config); 
+    await extractJsonDataFromLayouts(config); 
     await extractCsvDataFromLayouts(config); 
     const files = await fs.readdir(contentDir);
 
     // Initialize an array to hold all markdown files
     const markdownFiles = [];
-
     // Traverse through the content directory
     for (const file of files) {
         const fullPath = `${contentDir}/${file}`;
         const stats = await fs.stat(fullPath);
 
         if (stats.isDirectory()) {
-            // If it's a directory, read its contents
             const nestedFiles = await fs.readdir(fullPath);
             nestedFiles.forEach(nestedFile => {
                 if (nestedFile.endsWith('.md')) {
@@ -192,7 +232,6 @@ async function processContent() {
                 }
             });
         } else if (stats.isFile() && file.endsWith('.md')) {
-            // If it's a file and ends with .md, add it to the list
             markdownFiles.push(file);
         }
     }
@@ -209,36 +248,37 @@ async function processContent() {
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
 
-        // Check if the title is valid
         if (!data.title) {
             skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
-            continue; // Skip this entry if no title
+            continue;
         }
 
-        // Generate HTML for the post
-        const html = await generateSingleHTML(data.title, htmlContent, file); 
+        const html = await generateSingleHTML(data.title, htmlContent, file);
 
-        // Ensure the output directory exists
         const slug = file.replace('.md', '');
         const outputFilePath = path.join(outputDir, `${slug}.html`);
         const outputDirPath = path.dirname(outputFilePath);
-        await fs.ensureDir(outputDirPath); // Ensure the directory exists
+        await fs.ensureDir(outputDirPath);
 
         await fs.writeFile(outputFilePath, html);
-        
-        // Use the title from front matter or fallback to slug
-        const postTitle = data.title || slug.replace(/-/g, ' '); // Use slug as title if no front matter title
-        posts.push({ title: postTitle, url: `${slug}.html` }); 
+
+        const postTitle = data.title || slug.replace(/-/g, ' ');
+        posts.push({ title: postTitle, url: `${slug}.html` });
     }
 
-    const indexHTML = await generateIndex(posts);
-    await fs.writeFile(`${outputDir}/index.html`, indexHTML);
+    // Generate paginated index pages
+    const paginatedPages = await generatePaginatedIndex(posts);
 
-    // Calculate total build time
+    // Write paginated index pages to the output folder
+    for (const { page, html } of paginatedPages) {
+        const outputFilePath = `${outputDir}/page/${page}.html`;
+        await fs.ensureDir(path.dirname(outputFilePath));
+        await fs.writeFile(outputFilePath, html);
+    }
+
     const totalEndTime = Date.now();
     const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
     
-    // Log final statistics
     console.log('--- Build Statistics ---');
     console.log(`Total Entries Processed: ${markdownFiles.length}`);
     console.log(`Total Files Created: ${posts.length}`);
@@ -252,6 +292,7 @@ async function processContent() {
         console.log(`No entries were skipped.`);
     }
 }
+
 
 // Main SSG execution
 async function runSSG() {
