@@ -5,6 +5,8 @@ const path = require('path');
 const csv = require('csv-parser');
 const axios = require('axios');
 const { Readable } = require('stream');
+const paginateSite = require('./pagination'); // Import pagination plugin
+
 
 const { extractCsvDataFromLayouts, extractJsonDataFromLayouts } = require('./dataExtractor');
 
@@ -170,7 +172,6 @@ async function generateIndex(posts) {
 }
 
 // Main content processing function
-const paginateSite = require('./pagination'); // Import pagination plugin
 
 async function processContent() {
     await extractJsonDataFromLayouts(config);
