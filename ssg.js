@@ -33,14 +33,12 @@ const config = {
     csv: {
         include: ["https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"
         exclude: []   // Specify CSV files to exclude
+    },
+     pagination: {
+        postsPerPage: 10 // Adjust this value as needed
     }
 };
-const config = {
-    pagination: {
-        postsPerPage: 10 // Adjust this value as needed
-    },
-    // other config settings...
-};
+
 
 const layoutCache = {};
 const partialCache = {};
