@@ -34,11 +34,16 @@ const config = {
         include: ["https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"
         exclude: []   // Specify CSV files to exclude
     },
+    basePath: '/yuushacms',
      pagination: {
         postsPerPage: 10 // Adjust this value as needed
     }
 };
 
+
+function getBasePath() {
+    return config.basePath.endsWith('/') ? config.basePath : `${config.basePath}/`;  
+}
 
 const layoutCache = {};
 const partialCache = {};
@@ -178,9 +183,12 @@ async function generateIndex(posts, pageNumber = 1) {
     // Render the list of posts for the current page
     const listHTML = await renderTemplate(listTemplate, { posts: pagePosts });
 
-    // Calculate previous and next page links
-    const prevPage = pageNumber > 1 ? `/index-${pageNumber - 1}.html` : null;
-    const nextPage = pageNumber < totalPages ? `/index-${pageNumber + 1}.html` : null;
+    // Get the base path dynamically from config
+    const basePath = getBasePath();
+
+    // Calculate previous and next page links, with the correct base path
+    const prevPage = pageNumber > 1 ? `${basePath}index-${pageNumber - 1}.html` : null;
+    const nextPage = pageNumber < totalPages ? `${basePath}index-${pageNumber + 1}.html` : null;
 
     const renderedContent = await renderTemplate(indexTemplate, { 
         list: listHTML, 
@@ -280,11 +288,19 @@ async function processContent() {
     const postsPerPage = config.pagination.postsPerPage;
     const totalPages = Math.ceil(posts.length / postsPerPage);
 
-    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
-        const indexHTML = await generateIndex(posts, pageNumber);
-        const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
-        await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
-    }
+for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+    const indexHTML = await generateIndex(posts, pageNumber);
+    const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
+    
+    // Get the base path dynamically from the config
+    const basePath = getBasePath();
+
+    // Write the file under the base path (e.g., /yuushacms/)
+    const outputPath = path.join(outputDir, basePath, pageFileName);
+    await fs.ensureDir(path.dirname(outputPath));
+    await fs.writeFile(outputPath, indexHTML);
+}
+
 
     const totalEndTime = Date.now();
     const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
