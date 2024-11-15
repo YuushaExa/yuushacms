@@ -178,18 +178,21 @@ async function generateIndex(posts, pageNumber = 1) {
     // Render the list of posts for the current page
     const listHTML = await renderTemplate(listTemplate, { posts: pagePosts });
 
-    // Render pagination links
-    const paginationLinks = generatePaginationLinks(pageNumber, totalPages);
-    
+    // Calculate previous and next page links
+    const prevPage = pageNumber > 1 ? `/index-${pageNumber - 1}.html` : null;
+    const nextPage = pageNumber < totalPages ? `/index-${pageNumber + 1}.html` : null;
+
     const renderedContent = await renderTemplate(indexTemplate, { 
         list: listHTML, 
-        pagination: paginationLinks,
         currentPage: pageNumber,
-        totalPages: totalPages 
+        totalPages: totalPages,
+        prevPage: prevPage,
+        nextPage: nextPage
     });
     
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
+
 
 // Function to generate pagination links
 function generatePaginationLinks(currentPage, totalPages) {
