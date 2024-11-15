@@ -254,6 +254,7 @@ async function processContent() {
 
     // Process all collected markdown files
     for (const file of markdownFiles) {
+        const postStartTime = Date.now(); // Start time for post creation
         const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
@@ -274,11 +275,16 @@ async function processContent() {
 
         const postTitle = data.title || slug.replace(/-/g, ' ');
         posts.push({ title: postTitle, url: `${slug}.html` });
+
+        const postEndTime = Date.now(); // End time for post creation
+        const postDuration = (postEndTime - postStartTime) / 1000; // Duration in seconds
+        console.log(`Created post: ${postTitle} in ${postDuration.toFixed(4)} seconds`);
     }
 
     // Generate paginated index pages
     const postsPerPage = config.pagination.postsPerPage;
     const totalPages = Math.ceil(posts.length / postsPerPage);
+    const pageStartTime = Date.now(); // Start time for page creation
 
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
         const indexHTML = await generateIndex(posts, pageNumber);
@@ -286,12 +292,18 @@ async function processContent() {
         await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
     }
 
+    const pageEndTime = Date.now(); // End time for page creation
+    const pageDuration = (pageEndTime - pageStartTime) / 1000; // Duration in seconds
+
     const totalEndTime = Date.now();
     const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
 
     console.log('--- Build Statistics ---');
     console.log(`Total Entries Processed: ${markdownFiles.length}`);
-    console.log(`Total Files Created: ${posts.length}`);
+    console.log(`Total Posts Created: ${posts.length}`);
+    console.log(`Total Pages Created: ${totalPages}`);
+    console.log(`Average Time per Post: ${(postDuration / posts.length).toFixed(4)} seconds`);
+    console.log(`Total Time for Page Creation: ${pageDuration.toFixed(4)} seconds`);
     
     if (skippedEntries.length > 0) {
         console.log(`Skipped Entries:`);
