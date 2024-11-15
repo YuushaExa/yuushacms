@@ -28,7 +28,7 @@ const config = {
         exclude: []   // Specify JSON files to exclude
     },
     csv: {
-        include: ["https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"
+        include: [], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"
         exclude: []   // Specify CSV files to exclude
     }
 };
@@ -95,11 +95,13 @@ async function preloadTemplates() {
     }
 }
 
+    context.currentYear = new Date().getFullYear();
+
+
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-    context.currentYear = new Date().getFullYear();
     
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
