@@ -31,7 +31,7 @@ const config = {
         exclude: []   // Specify JSON files to exclude
     },
     csv: {
-        include: ["https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"
+        include: [], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"
         exclude: []   // Specify CSV files to exclude
     },
      pagination: {
@@ -278,6 +278,7 @@ async function processContent() {
 
         const postEndTime = Date.now(); // End time for post creation
         const postDuration = (postEndTime - postStartTime) / 1000; // Duration in seconds
+       console.log(`Created post: ${postTitle} in ${postDuration.toFixed(4)} seconds`);
     }
 
     // Generate paginated index pages
