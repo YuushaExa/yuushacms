@@ -252,6 +252,9 @@ async function processContent() {
     const skippedEntries = [];
     const startTime = Date.now();
 
+    let totalPostDuration = 0; // Initialize total post duration
+    let postCount = 0; // Initialize post count
+
     // Process all collected markdown files
     for (const file of markdownFiles) {
         const postStartTime = Date.now(); // Start time for post creation
@@ -278,7 +281,10 @@ async function processContent() {
 
         const postEndTime = Date.now(); // End time for post creation
         const postDuration = (postEndTime - postStartTime) / 1000; // Duration in seconds
-       console.log(`Created post: ${postTitle} in ${postDuration.toFixed(4)} seconds`);
+        totalPostDuration += postDuration; // Accumulate total post duration
+        postCount++; // Increment post count
+
+        console.log(`Created post: ${postTitle} in ${postDuration.toFixed(4)} seconds`);
     }
 
     // Generate paginated index pages
@@ -302,7 +308,13 @@ async function processContent() {
     console.log(`Total Entries Processed: ${markdownFiles.length}`);
     console.log(`Total Posts Created: ${posts.length}`);
     console.log(`Total Pages Created: ${totalPages}`);
-    console.log(`Average Time per Post: ${(postDuration / posts.length).toFixed(4)} seconds`);
+    
+    if (postCount > 0) {
+        console.log(`Average Time per Post: ${(totalPostDuration / postCount).toFixed(4)} seconds`);
+    } else {
+        console.log(`No posts were created.`);
+    }
+    
     console.log(`Total Time for Page Creation: ${pageDuration.toFixed(4)} seconds`);
     
     if (skippedEntries.length > 0) {
@@ -314,6 +326,7 @@ async function processContent() {
         console.log(`No entries were skipped.`);
     }
 }
+
 
 
 // Main SSG execution
