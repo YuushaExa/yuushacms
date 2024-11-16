@@ -284,7 +284,6 @@ async function processContent() {
         totalPostDuration += postDuration; // Accumulate total post duration
         postCount++; // Increment post count
 
-        console.log(`Created post: ${postTitle} in ${postDuration.toFixed(4)} seconds`);
     }
 
     // Generate paginated index pages
