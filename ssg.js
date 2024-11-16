@@ -165,46 +165,10 @@ async function generateSingleHTML(title, content, fileName) {
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
 
-function generatePaginationLinks(currentPage, totalPages) {
-    let links = '';
-
-    // Previous Page Link
-    if (currentPage > 1) {
-        links += `<a href="${generatePageUrl(currentPage - 1)}" aria-label="Previous Page">Previous</a> `;
-    }
-
-    // Page Number Links
-    for (let i = 1; i <= totalPages; i++) {
-        if (i === currentPage) {
-            links += `<strong>${i}</strong> `;
-        } else {
-            links += `<a href="${generatePageUrl(i)}">${i}</a> `;
-        }
-    }
-
-    // Next Page Link
-    if (currentPage < totalPages) {
-        links += `<a href="${generatePageUrl(currentPage + 1)}" aria-label="Next Page">Next</a>`;
-    }
-
-    return links;
-}
-
-// Function to generate the URL for a given page number
-function generatePageUrl(pageNumber) {
-    return `/yuushacms/index${pageNumber === 1 ? '' : `-${pageNumber}`}.html`;
-}
-
-// Function to generate index pages
 async function generateIndex(posts, pageNumber = 1) {
     const postsPerPage = config.pagination.postsPerPage;
     const totalPages = Math.ceil(posts.length / postsPerPage);
     
-    // Validate page number
-    if (pageNumber < 1 || pageNumber > totalPages) {
-        throw new Error('Invalid page number');
-    }
-
     // Slice the posts array to get the current page's posts
     const pagePosts = posts.slice((pageNumber - 1) * postsPerPage, pageNumber * postsPerPage);
     
@@ -214,17 +178,46 @@ async function generateIndex(posts, pageNumber = 1) {
     // Render the list of posts for the current page
     const listHTML = await renderTemplate(listTemplate, { posts: pagePosts });
 
-    // Generate pagination links
-    const paginationLinks = generatePaginationLinks(pageNumber, totalPages);
+    // Calculate previous and next page links
+    const prevPage = pageNumber > 1 ? `/yuushacms/index-${pageNumber - 1}.html` : null;
+    const nextPage = pageNumber < totalPages ? `/yuushacms/index-${pageNumber + 1}.html` : null;
 
     const renderedContent = await renderTemplate(indexTemplate, { 
         list: listHTML, 
         currentPage: pageNumber,
         totalPages: totalPages,
-        paginationLinks: paginationLinks // Pass pagination links to the template
+        prevPage: prevPage,
+        nextPage: nextPage
     });
     
     return await renderWithBase(renderedContent, { title: 'Home' });
+}
+
+
+// Function to generate pagination links
+function generatePaginationLinks(currentPage, totalPages) {
+    let links = '';
+
+    // Previous Page Link
+    if (currentPage > 1) {
+        links += `<a href="/yuushacms/index${currentPage - 1 === 1 ? '' : `-${currentPage - 1}`}.html">Previous</a> `;
+    }
+
+    // Page Number Links
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage) {
+            links += `<strong>${i}</strong> `;
+        } else {
+            links += `<a href="/yuushacms/index-${i}.html">${i}</a> `;
+        }
+    }
+
+    // Next Page Link
+    if (currentPage < totalPages) {
+        links += `<a href="/yuushacms/index-${currentPage + 1}.html">Next</a>`;
+    }
+
+    return links;
 }
 
 
