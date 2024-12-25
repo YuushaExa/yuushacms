@@ -165,12 +165,10 @@ async function generateSingleHTML(title, content, fileName) {
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
 
-async function generateIndex(posts, pageNumber = 1) {
-    const postsPerPage = config.pagination.postsPerPage;
-    const totalPages = Math.ceil(posts.length / postsPerPage);
-    
+async function generateIndex(postSlices, posts, pageNumber = 1) {
+     
     // Slice the posts array to get the current page's posts
-    const pagePosts = posts.slice((pageNumber - 1) * postsPerPage, pageNumber * postsPerPage);
+const pagePosts = postSlices[pageNumber - 1];
     
     const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
     const indexTemplate = layoutCache['index'] || await readFile(layoutsDir, 'index');
@@ -290,7 +288,12 @@ async function processContent() {
     const postsPerPage = config.pagination.postsPerPage;
     const totalPages = Math.ceil(posts.length / postsPerPage);
     const pageStartTime = Date.now(); // Start time for page creation
+  const postSlices = [];
 
+    for (let i = 0; i < totalPages; i++) {
+        postSlices.push(posts.slice(i * postsPerPage, (i + 1) * postsPerPage));
+    }
+    
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
         const indexHTML = await generateIndex(posts, pageNumber);
         const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
