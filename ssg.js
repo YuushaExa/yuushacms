@@ -165,7 +165,7 @@ async function generateSingleHTML(title, content, fileName) {
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
 
-async function generateIndex(postSlices, posts, pageNumber = 1) {
+async function generateIndex(postSlices, pageNumber, totalPages) {
      
     // Slice the posts array to get the current page's posts
 const pagePosts = postSlices[pageNumber - 1];
