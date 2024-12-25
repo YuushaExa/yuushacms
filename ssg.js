@@ -165,7 +165,7 @@ async function generateSingleHTML(title, content, fileName) {
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
 
-async function generateIndex(posts, pageNumber = 1) {
+async function generateIndex(postSlices, pageNumber, totalPages) {
     const postsPerPage = config.pagination.postsPerPage;
     const totalPages = Math.ceil(posts.length / postsPerPage);
     
