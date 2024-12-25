@@ -61,6 +61,7 @@ async function fetchCsv(url) {
 // Function to generate Markdown files from CSV data
 async function generateMarkdownFromCsv(data) {
     let postCounter = 1; // Initialize a counter for posts
+    const existingSlugs = new Set(); 
 
     for (const item of data) {
         const frontMatter = matter.stringify('', {
@@ -71,11 +72,20 @@ async function generateMarkdownFromCsv(data) {
         let slug = sanitizeSlug(title); // Use the sanitizeSlug function to generate the slug
 
         // Fallback for empty slug
-        if (!slug) {
+       if (!slug) {
             console.warn('Generated slug is empty, using default "post"');
-            slug = `post-${postCounter}`; // Use counter to create a unique slug
-            postCounter++;
+            slug = `post`;
         }
+
+
+        let finalSlug = slug;
+        let slugCounter = 1;
+        while (existingSlugs.has(finalSlug)) {
+            finalSlug = `${slug}-${slugCounter}`;
+            slugCounter++;
+        }
+        slug = finalSlug;
+        existingSlugs.add(slug);
 
         const markdownFilePath = path.join(contentDir, `${slug}.md`);
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
