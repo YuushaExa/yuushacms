@@ -287,8 +287,6 @@ async function processContent() {
     }
 
     // Generate paginated index pages
-    const postsPerPage = config.pagination.postsPerPage;
-    const totalPages = Math.ceil(posts.length / postsPerPage);
     const postSlices = [];
 
 for (let i = 0; i < totalPages; i++) {
