@@ -167,7 +167,7 @@ async function generateSingleHTML(title, content, fileName) {
 
 async function generateIndex(postSlices, pageNumber, totalPages) {
      
-    // Slice the posts array to get the current page's posts
+    // Slice the posts array to get the current page posts
 const pagePosts = postSlices[pageNumber - 1];
     
     const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
