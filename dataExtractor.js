@@ -8,10 +8,16 @@ const matter = require('gray-matter');
 const contentDir = 'content';
 
 // Utility function to sanitize slugs
-function sanitizeSlug(slug, maxLength = 50) {
-    if (slug.length > maxLength) {
-        slug = slug.substring(0, maxLength).replace(/-+$/, ''); // Remove trailing hyphens
+function sanitizeSlug(input, maxLength = 50, separator = '-') {
+    if (!input) {
+        return ''; // Handle empty input
     }
+    let slug = input.toLowerCase().trim();
+    slug = slug.replace(/[^a-z0-9\s-]/g, ''); 
+    slug = slug.replace(/[\s-]+/g, separator); 
+    slug = slug.substring(0, maxLength);
+    slug = slug.replace(new RegExp(`^${separator}|${separator}$`, 'g'), '');
+
     return slug;
 }
 
