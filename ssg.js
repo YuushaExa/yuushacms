@@ -170,8 +170,8 @@ async function generateIndex(posts, pageNumber = 1) {
     const totalPages = Math.ceil(posts.length / postsPerPage);
     
     // Slice the posts array to get the current page's posts
-    const pagePosts = posts.slice((pageNumber - 1) * postsPerPage, pageNumber * postsPerPage);
-    
+    const pagePosts = postSlices[pageNumber - 1];
+
     const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
     const indexTemplate = layoutCache['index'] || await readFile(layoutsDir, 'index');
 
@@ -289,6 +289,12 @@ async function processContent() {
     // Generate paginated index pages
     const postsPerPage = config.pagination.postsPerPage;
     const totalPages = Math.ceil(posts.length / postsPerPage);
+    const postSlices = [];
+
+for (let i = 0; i < totalPages; i++) {
+    postSlices.push(posts.slice(i * postsPerPage, (i + 1) * postsPerPage));
+}
+    
     const pageStartTime = Date.now(); // Start time for page creation
 
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
