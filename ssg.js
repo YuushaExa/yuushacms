@@ -61,8 +61,9 @@ async function readFile(dir, name) {
 
 // Function to preload layouts and partials based on config
 async function preloadTemplates() {
+    // Preload Layouts
     const layoutFiles = await fs.readdir(layoutsDir);
-    for (const file of layoutFiles) {
+    const layoutPromises = layoutFiles.map(async (file) => {
         if (file.endsWith('.html')) {
             const layoutName = file.replace('.html', '');
 
@@ -72,16 +73,22 @@ async function preloadTemplates() {
                 !config.layouts.exclude.includes(layoutName);
 
             if (shouldIncludeLayout) {
-                layoutCache[layoutName] = await fs.readFile(`${layoutsDir}/${file}`, 'utf-8');
-                console.log(`Preloaded layout: ${layoutName}`);
+                try {
+                    const content = await fs.readFile(path.join(layoutsDir, file), 'utf-8');
+                    layoutCache[layoutName] = content;
+                    console.log(`Preloaded layout: ${layoutName}`);
+                } catch (err) {
+                    console.error(`Error preloading layout ${layoutName}:`, err);
+                }
             } else {
                 console.log(`Skipped layout: ${layoutName}`);
             }
         }
-    }
+    });
 
+    // Preload Partials
     const partialFiles = await fs.readdir(partialsDir);
-    for (const file of partialFiles) {
+    const partialPromises = partialFiles.map(async (file) => {
         if (file.endsWith('.html')) {
             const partialName = file.replace('.html', '');
 
@@ -91,13 +98,21 @@ async function preloadTemplates() {
                 !config.partials.exclude.includes(partialName);
 
             if (shouldIncludePartial) {
-                partialCache[partialName] = await fs.readFile(`${partialsDir}/${file}`, 'utf-8');
-                console.log(`Preloaded partial: ${partialName}`);
+                try {
+                    const content = await fs.readFile(path.join(partialsDir, file), 'utf-8');
+                    partialCache[partialName] = content;
+                    console.log(`Preloaded partial: ${partialName}`);
+                } catch (err) {
+                    console.error(`Error preloading partial ${partialName}:`, err);
+                }
             } else {
                 console.log(`Skipped partial: ${partialName}`);
             }
         }
-    }
+    });
+
+    // Wait for all layout and partial promises to resolve
+    await Promise.all([...layoutPromises, ...partialPromises]);
 }
 
 // Function to render a template with context and partials
