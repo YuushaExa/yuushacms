@@ -1,0 +1,4 @@
+  <div class="post-content">
+        {{ content }}
+    </div>
+    to use in single
