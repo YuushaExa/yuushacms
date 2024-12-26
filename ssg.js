@@ -78,7 +78,7 @@ async function preloadTemplates() {
                 console.log(`Skipped layout: ${layoutName}`);
             }
         }
-    }
+    } 
 
     const partialFiles = await fs.readdir(partialsDir);
     for (const file of partialFiles) {
