@@ -318,11 +318,7 @@ async function processContent() {
         console.log(`No posts were created.`);
     }
     
-if (pageCount > 0) {
         console.log(`Average Time per Page: ${averageTimePerPage} seconds`);
-    } else {
-        console.log('No pages were created.');
-    }
     
     if (skippedEntries.length > 0) {
         console.log(`Skipped Entries:`);
