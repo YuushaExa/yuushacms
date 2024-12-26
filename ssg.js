@@ -228,124 +228,125 @@ function generatePaginationLinks(currentPage, totalPages) {
     return links;
 }
 
-// Main content processing function
 async function processContent() {
-    // Track time for data extraction
-    const dataStartTime = Date.now();
-    const extractedData = await extractDataFromSources(config); // ONLY ONE CALL NEEDED
-    const dataEndTime = Date.now();
-    const dataDuration = (dataEndTime - dataStartTime) / 1000;
+    try {
+        const dataStartTime = Date.now();
+        await extractDataFromSources();
+        const dataEndTime = Date.now();
+        const dataDuration = (dataEndTime - dataStartTime) / 1000;
 
-    const files = await fs.readdir(contentDir);
-    const markdownFiles = [];
+        // Read and process Markdown files from contentDir
+        const files = await fs.readdir(contentDir);
+        const markdownFiles = [];
+        for (const file of files) {
+            const fullPath = path.join(contentDir, file);
+            const stats = await fs.stat(fullPath);
 
-    // Traverse through the content directory
-    for (const file of files) {
-        const fullPath = `${contentDir}/${file}`;
-        const stats = await fs.stat(fullPath);
+            if (stats.isDirectory()) {
+                const nestedFiles = await fs.readdir(fullPath);
+                nestedFiles.forEach(nestedFile => {
+                    if (nestedFile.endsWith('.md')) {
+                        markdownFiles.push(path.join(file, nestedFile));
+                    }
+                });
+            } else if (stats.isFile() && file.endsWith('.md')) {
+                markdownFiles.push(file);
+            }
+        }
 
-        if (stats.isDirectory()) {
-            const nestedFiles = await fs.readdir(fullPath);
-            nestedFiles.forEach(nestedFile => {
-                if (nestedFile.endsWith('.md')) {
-                    markdownFiles.push(`${file}/${nestedFile}`);
-                }
+        await fs.ensureDir(outputDir);
+
+        const posts = [];
+        const skippedEntries = [];
+        const startTime = Date.now();
+
+        let totalPostDuration = 0;
+        let postCount = 0;
+
+        for (const file of markdownFiles) {
+            const postStartTime = Date.now();
+            const filePath = path.join(contentDir, file);
+            const content = await fs.readFile(filePath, 'utf-8');
+            const { data, content: mdContent } = matter(content);
+            const htmlContent = marked(mdContent);
+
+            if (!data.title) {
+                skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
+                continue;
+            }
+
+            const html = await generateSingleHTML(data.title, htmlContent, file);
+
+            const slug = file.replace('.md', '');
+            const outputFilePath = path.join(outputDir, `${slug}.html`);
+            const outputDirPath = path.dirname(outputFilePath);
+            await fs.ensureDir(outputDirPath);
+
+            await fs.writeFile(outputFilePath, html);
+
+            const postTitle = data.title || slug.replace(/-/g, ' ');
+            posts.push({ title: postTitle, url: `${slug}.html` });
+
+            const postEndTime = Date.now();
+            const postDuration = (postEndTime - postStartTime) / 1000;
+            totalPostDuration += postDuration;
+            postCount++;
+        }
+
+        // Generate paginated index pages
+        const postsPerPage = config.pagination.postsPerPage;
+        const totalPages = Math.ceil(posts.length / postsPerPage);
+        const pageStartTime = Date.now();
+        const postSlices = [];
+
+        for (let i = 0; i < totalPages; i++) {
+            postSlices.push(posts.slice(i * postsPerPage, (i + 1) * postsPerPage));
+        }
+
+        const pagePromises = [];
+        for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+            pagePromises.push((async () => {
+                const indexHTML = await generateIndex(postSlices, pageNumber, totalPages);
+                const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
+                await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
+            })());
+        }
+        await Promise.all(pagePromises);
+
+        const pageEndTime = Date.now();
+        const pageDuration = (pageEndTime - pageStartTime) / 1000;
+        const averageTimePerPage = totalPages > 0 ? (pageDuration / totalPages).toFixed(4) : 0;
+
+        const totalEndTime = Date.now();
+        const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(5);
+
+        console.log('--- Build Statistics ---');
+        console.log(`Total Entries Processed: ${markdownFiles.length}`);
+        console.log(`Total Posts Created: ${posts.length}`);
+        console.log(`Total Pages Created: ${totalPages}`);
+        console.log(`Time taken to process data: ${dataDuration} seconds`);
+
+        if (postCount > 0) {
+            console.log(`Average Time per Post: ${(totalPostDuration / postCount).toFixed(5)} seconds`);
+        } else {
+            console.log(`No posts were created.`);
+        }
+
+        console.log(`Average Time per Page: ${averageTimePerPage} seconds`);
+
+        if (skippedEntries.length > 0) {
+            console.log(`Skipped Entries:`);
+            skippedEntries.forEach(entry => {
+                console.log(`- Title: ${entry.title}, Link: ${entry.link}`);
             });
-        } else if (stats.isFile() && file.endsWith('.md')) {
-            markdownFiles.push(file);
-        }
-    }
-
-    await fs.ensureDir(outputDir);
-
-    const posts = [];
-    const skippedEntries = [];
-    const startTime = Date.now();
-
-    let totalPostDuration = 0;
-    let postCount = 0;
-
-    // Process all collected markdown files
-    for (const file of markdownFiles) {
-        const postStartTime = Date.now();
-        const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
-        const { data, content: mdContent } = matter(content);
-        const htmlContent = marked(mdContent);
-
-        if (!data.title) {
-            skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
-            continue;
+        } else {
+            console.log(`No entries were skipped.`);
         }
 
-        const html = await generateSingleHTML(data.title, htmlContent, file);
-
-        const slug = file.replace('.md', '');
-        const outputFilePath = path.join(outputDir, `${slug}.html`);
-        const outputDirPath = path.dirname(outputFilePath);
-        await fs.ensureDir(outputDirPath);
-
-        await fs.writeFile(outputFilePath, html);
-
-        const postTitle = data.title || slug.replace(/-/g, ' ');
-        posts.push({ title: postTitle, url: `${slug}.html` });
-
-        const postEndTime = Date.now();
-        const postDuration = (postEndTime - postStartTime) / 1000;
-        totalPostDuration += postDuration;
-        postCount++;
+        console.log(`Total Build Time: ${totalElapsed} seconds`);
+    } catch (error) {
+        console.error(`Error during content processing: ${error.message}`);
     }
-
-    // Generate paginated index pages
-    const postsPerPage = config.pagination.postsPerPage;
-    const totalPages = Math.ceil(posts.length / postsPerPage);
-    const pageStartTime = Date.now();
-    const postSlices = [];
-
-    for (let i = 0; i < totalPages; i++) {
-        postSlices.push(posts.slice(i * postsPerPage, (i + 1) * postsPerPage));
-    }
-
-    const pagePromises = [];
-    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
-        pagePromises.push((async () => {
-            const indexHTML = await generateIndex(postSlices, pageNumber, totalPages);
-            const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
-            await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
-        })());
-    }
-    await Promise.all(pagePromises);
-
-    const pageEndTime = Date.now();
-    const pageDuration = (pageEndTime - pageStartTime) / 1000;
-    const averageTimePerPage = totalPages > 0 ? (pageDuration / totalPages).toFixed(4) : 0;
-
-    const totalEndTime = Date.now();
-    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(5);
-
-    console.log('--- Build Statistics ---');
-    console.log(`Total Entries Processed: ${markdownFiles.length}`);
-    console.log(`Total Posts Created: ${posts.length}`);
-    console.log(`Total Pages Created: ${totalPages}`);
-    console.log(`Time taken to process data: ${dataDuration} seconds`);
-
-    if (postCount > 0) {
-        console.log(`Average Time per Post: ${(totalPostDuration / postCount).toFixed(5)} seconds`);
-    } else {
-        console.log(`No posts were created.`);
-    }
-
-    console.log(`Average Time per Page: ${averageTimePerPage} seconds`);
-
-    if (skippedEntries.length > 0) {
-        console.log(`Skipped Entries:`);
-        skippedEntries.forEach(entry => {
-            console.log(`- Title: ${entry.title}, Link: ${entry.link}`);
-        });
-    } else {
-        console.log(`No entries were skipped.`);
-    }
-
-    console.log(`Total Build Time: ${totalElapsed} seconds`);
 }
 
 // Main SSG execution
