@@ -30,7 +30,7 @@ const config = {
         exclude: []   // Specify JSON files to exclude
     },
     csv: {
-        include: ["https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"
+        include: [], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"
         exclude: []   // Specify CSV files to exclude
     },
     pagination: {
@@ -228,18 +228,72 @@ function generatePaginationLinks(currentPage, totalPages) {
     return links;
 }
 
+// Main content processing function
 async function processContent() {
+    // Track time for data extraction
     const dataStartTime = Date.now();
-    const globalDataContext = await extractDataFromSources();
+    const extractedData = await extractDataFromSources(config); // ONLY ONE CALL NEEDED
     const dataEndTime = Date.now();
     const dataDuration = (dataEndTime - dataStartTime) / 1000;
 
     const files = await fs.readdir(contentDir);
-    const markdownFiles = await getMarkdownFiles(files);
+    const markdownFiles = [];
+
+    // Traverse through the content directory
+    for (const file of files) {
+        const fullPath = `${contentDir}/${file}`;
+        const stats = await fs.stat(fullPath);
+
+        if (stats.isDirectory()) {
+            const nestedFiles = await fs.readdir(fullPath);
+            nestedFiles.forEach(nestedFile => {
+                if (nestedFile.endsWith('.md')) {
+                    markdownFiles.push(`${file}/${nestedFile}`);
+                }
+            });
+        } else if (stats.isFile() && file.endsWith('.md')) {
+            markdownFiles.push(file);
+        }
+    }
 
     await fs.ensureDir(outputDir);
 
-    const { posts, skippedEntries } = await processMarkdownFiles(markdownFiles, globalDataContext);
+    const posts = [];
+    const skippedEntries = [];
+    const startTime = Date.now();
+
+    let totalPostDuration = 0;
+    let postCount = 0;
+
+    // Process all collected markdown files
+    for (const file of markdownFiles) {
+        const postStartTime = Date.now();
+        const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
+        const { data, content: mdContent } = matter(content);
+        const htmlContent = marked(mdContent);
+
+        if (!data.title) {
+            skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
+            continue;
+        }
+
+        const html = await generateSingleHTML(data.title, htmlContent, file);
+
+        const slug = file.replace('.md', '');
+        const outputFilePath = path.join(outputDir, `${slug}.html`);
+        const outputDirPath = path.dirname(outputFilePath);
+        await fs.ensureDir(outputDirPath);
+
+        await fs.writeFile(outputFilePath, html);
+
+        const postTitle = data.title || slug.replace(/-/g, ' ');
+        posts.push({ title: postTitle, url: `${slug}.html` });
+
+        const postEndTime = Date.now();
+        const postDuration = (postEndTime - postStartTime) / 1000;
+        totalPostDuration += postDuration;
+        postCount++;
+    }
 
     // Generate paginated index pages
     const postsPerPage = config.pagination.postsPerPage;
@@ -266,7 +320,7 @@ async function processContent() {
     const averageTimePerPage = totalPages > 0 ? (pageDuration / totalPages).toFixed(4) : 0;
 
     const totalEndTime = Date.now();
-    const totalElapsed = ((totalEndTime - dataStartTime) / 1000).toFixed(5);
+    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(5);
 
     console.log('--- Build Statistics ---');
     console.log(`Total Entries Processed: ${markdownFiles.length}`);
@@ -292,125 +346,6 @@ async function processContent() {
     }
 
     console.log(`Total Build Time: ${totalElapsed} seconds`);
-}
-
-async function getMarkdownFiles(files) {
-    const markdownFiles = [];
-
-    for (const file of files) {
-        const fullPath = path.join(contentDir, file);
-        const stats = await fs.stat(fullPath);
-
-        if (stats.isDirectory()) {
-            const nestedFiles = await fs.readdir(fullPath);
-            for (const nestedFile of nestedFiles) {
-                if (nestedFile.endsWith('.md')) {
-                    markdownFiles.push(path.join(file, nestedFile));
-                }
-            }
-        } else if (file.endsWith('.md')) {
-            markdownFiles.push(file);
-        }
-    }
-
-    return markdownFiles;
-}
-
-async function processMarkdownFiles(markdownFiles, globalDataContext) {
-    const posts = [];
-    const skippedEntries = [];
-    let totalPostDuration = 0;
-    let postCount = 0;
-
-    for (const file of markdownFiles) {
-        const postStartTime = Date.now();
-        const filePath = path.join(contentDir, file);
-        const content = await fs.readFile(filePath, 'utf-8');
-        const { data, content: mdContent } = matter(content);
-
-        // Inject data into the Markdown content if needed
-        const updatedMdContent = injectDataIntoMarkdown(mdContent, globalDataContext);
-
-        const htmlContent = marked(updatedMdContent);
-
-        const pageData = data.pageData;
-        if (pageData && globalDataContext[pageData]) {
-            const dataItems = globalDataContext[pageData];
-            for (const dataItem of dataItems) {
-                const mergedData = { ...data, ...dataItem };
-                const html = await generateSingleHTML(mergedData.title, htmlContent, file);
-
-                const slug = dataItem.slug || generateSlug(dataItem.title);
-                const outputFilePath = path.join(outputDir, `${slug}.html`);
-                await fs.ensureDir(path.dirname(outputFilePath));
-                await fs.writeFile(outputFilePath, html);
-
-                posts.push({ title: dataItem.title, url: `${slug}.html` });
-            }
-        } else {
-            if (!data.title) {
-                skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
-                continue;
-            }
-
-            const html = await generateSingleHTML(data.title, htmlContent, file);
-            const slug = file.replace('.md', '');
-            const outputFilePath = path.join(outputDir, `${slug}.html`);
-            await fs.ensureDir(path.dirname(outputFilePath));
-            await fs.writeFile(outputFilePath, html);
-
-            posts.push({ title: data.title, url: `${slug}.html` });
-        }
-
-        const postEndTime = Date.now();
-        const postDuration = (postEndTime - postStartTime) / 1000;
-        totalPostDuration += postDuration;
-        postCount++;
-    }
-
-    return { posts, skippedEntries };
-}
-
-function generateSlug(title) {
-    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
-
-function injectDataIntoMarkdown(mdContent, globalDataContext) {
-    let updatedMdContent = mdContent;
-
-    // Check for a special placeholder indicating where to inject data
-    if (mdContent.includes('{{#each data}}')) {
-        const dataKey = Object.keys(globalDataContext).find(key => mdContent.includes(`{{#each ${key}}}`));
-        if (dataKey) {
-            const dataItems = globalDataContext[dataKey];
-            let injectedContent = '';
-
-            for (const item of dataItems) {
-                let itemContent = mdContent;
-                // Replace placeholders with actual data
-                for (const [key, value] of Object.entries(item)) {
-                    const regex = new RegExp(`{{${key}}}`, 'g');
-                    itemContent = itemContent.replace(regex, value);
-                }
-                // Remove the special placeholder
-                itemContent = itemContent.replace(`{{#each ${dataKey}}}`, '');
-                injectedContent += itemContent;
-            }
-
-            updatedMdContent = injectedContent;
-        }
-    } else {
-        // Inject data as variables at the beginning of the Markdown content
-        for (const [dataKey, dataItems] of Object.entries(globalDataContext)) {
-            for (const item of dataItems) {
-                for (const [key, value] of Object.entries(item)) {
-                    updatedMdContent = `{{ ${key} }} = "${value}"\n` + updatedMdContent;
-                }
-            }
-        }
-    }
-
-    return updatedMdContent;
 }
 
 // Main SSG execution
