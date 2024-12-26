@@ -412,25 +412,26 @@ async function generateTagPages(tagData) {
             const posts = tagData[tagType][tagValue];
             const totalPages = Math.ceil(posts.length / config.pagination.postsPerPage);
 
-            // Use the sanitized tag value for directory and file names
-            const sanitizedTagValue = sanitizeTagValue(tagValue);
-
+            // No need to sanitize the tagValue for directory names here
             for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
                 const pagePosts = posts.slice((pageNumber - 1) * config.pagination.postsPerPage, pageNumber * config.pagination.postsPerPage);
-                const prevPage = pageNumber > 1 ? `/tags/${tagType}/${sanitizedTagValue}/page-${pageNumber - 1}.html` : null;
-                const nextPage = pageNumber < totalPages ? `/tags/${tagType}/${sanitizedTagValue}/page-${pageNumber + 1}.html` : null;
+
+                // Construct URLs without sanitization
+                const prevPage = pageNumber > 1 ? `/yuushacms/tags/${tagType}/${tagValue}/page-${pageNumber - 1}.html` : null;
+                const nextPage = pageNumber < totalPages ? `/yuushacms/tags/${tagType}/${tagValue}/page-${pageNumber + 1}.html` : null;
 
                 const renderedContent = await renderTemplate(tagTemplate, {
                     tagType: tagType,
-                    tagValue: tagValue, // Keep the original tagValue for display in the template
+                    tagValue: tagValue,
                     posts: pagePosts,
                     prevPage: prevPage,
                     nextPage: nextPage
                 });
 
-                // Use sanitizedTagValue for the directory
-                const tagPageDir = path.join(outputDir, 'tags', tagType, sanitizedTagValue);
+                // Construct directory path without sanitization
+                const tagPageDir = path.join(outputDir, 'tags', tagType, tagValue);
                 await fs.ensureDir(tagPageDir);
+
                 const outputFilePath = path.join(tagPageDir, pageNumber === 1 ? 'index.html' : `page-${pageNumber}.html`);
                 await fs.writeFile(outputFilePath, await renderWithBase(renderedContent, { title: `Tag: ${tagValue}` }));
             }
