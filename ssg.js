@@ -19,7 +19,7 @@ const layoutsDir = 'layouts';
 const config = {
     layouts: {
         include: [], // Specify layouts to include, e.g., 'base', 'single', 'list'
-        exclude: []  // Specify layouts to exclude
+        exclude: ['tag','single']  // Specify layouts to exclude
     },
     partials: {
         include: [], // Specify partials to include
