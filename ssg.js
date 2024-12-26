@@ -232,6 +232,26 @@ function generatePaginationLinks(currentPage, totalPages) {
     return links;
 }
 
+// tags
+async function extractTagTypesFromLayouts() {
+  const layoutFiles = await fs.readdir(layoutsDir);
+  const tagTypes = new Set();
+
+  for (const file of layoutFiles) {
+    if (file.endsWith('.html')) {
+      const content = await fs.readFile(path.join(layoutsDir, file), 'utf-8');
+      const regex = /<a href="\/tags\/([\w]+)\//g; // Regular expression to find tag types
+      let match;
+      while ((match = regex.exec(content)) !== null) {
+        tagTypes.add(match[1]); // Add the captured group (tag type) to the set
+      }
+    }
+  }
+
+  return Array.from(tagTypes); // Return tag types as an array
+}
+
+
 // Main content processing function
 async function processContent() {
     // Track time for data extraction
@@ -243,6 +263,9 @@ async function processContent() {
     const files = await fs.readdir(contentDir);
     const markdownFiles = [];
 
+   const tagTypes = await extractTagTypesFromLayouts();
+const tagData = {};
+ 
     // Traverse through the content directory
     for (const file of files) {
         const fullPath = `${contentDir}/${file}`;
@@ -276,6 +299,7 @@ async function processContent() {
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
 
+  
         if (!data.title) {
             skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
             continue;
@@ -298,7 +322,42 @@ async function processContent() {
         totalPostDuration += postDuration;
         postCount++;
     }
+  await generateTagPages(tagData);
 
+function sanitizeTagValue(tagValue) {
+    return encodeURIComponent(tagValue.toLowerCase().replace(/\s+/g, '-'));
+}
+
+async function generateTagPages(tagData) {
+    const tagTemplate = layoutCache['tag'] || await readFile(layoutsDir, 'tag');
+
+    for (const tagType in tagData) {
+        for (const tagValue in tagData[tagType]) {
+            const posts = tagData[tagType][tagValue];
+            const totalPages = Math.ceil(posts.length / config.pagination.postsPerPage);
+
+            for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+                const pagePosts = posts.slice((pageNumber - 1) * config.pagination.postsPerPage, pageNumber * config.pagination.postsPerPage);
+                const prevPage = pageNumber > 1 ? `/tags/${tagType}/${tagValue}/page-${pageNumber - 1}.html` : null;
+                const nextPage = pageNumber < totalPages ? `/tags/${tagType}/${tagValue}/page-${pageNumber + 1}.html` : null;
+
+                const renderedContent = await renderTemplate(tagTemplate, {
+                    tagType: tagType,
+                    tagValue: tagValue,
+                    posts: pagePosts,
+                    prevPage: prevPage,
+                    nextPage: nextPage
+                });
+
+                const tagPageDir = path.join(outputDir, 'tags', tagType, tagValue);
+                await fs.ensureDir(tagPageDir);
+                const outputFilePath = path.join(tagPageDir, pageNumber === 1 ? 'index.html' : `page-${pageNumber}.html`);
+                await fs.writeFile(outputFilePath, await renderWithBase(renderedContent, { title: `Tag: ${tagValue}` }));
+            }
+        }
+    }
+}
+ 
     // Generate paginated index pages
     const postsPerPage = config.pagination.postsPerPage;
     const totalPages = Math.ceil(posts.length / postsPerPage);
@@ -309,6 +368,23 @@ async function processContent() {
         postSlices.push(posts.slice(i * postsPerPage, (i + 1) * postsPerPage));
     }
 
+
+ tagTypes.forEach(tagType => {
+           if (data[tagType]) {
+               const tagValues = Array.isArray(data[tagType]) ? data[tagType] : [data[tagType]];
+               tagValues.forEach(tagValue => {
+                   const sanitizedTagValue = sanitizeTagValue(tagValue);
+                   if (!tagData[tagType]) {
+                       tagData[tagType] = {};
+                   }
+                   if (!tagData[tagType][sanitizedTagValue]) {
+                       tagData[tagType][sanitizedTagValue] = [];
+                   }
+                   tagData[tagType][sanitizedTagValue].push({ title: postTitle, url: `${slug}.html` });
+               });
+           }
+       });
+ 
     const pagePromises = [];
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
         pagePromises.push((async () => {
@@ -356,7 +432,8 @@ async function processContent() {
 async function runSSG() {
     console.log('--- Starting Static Site Generation ---');
     await preloadTemplates();
-    await processContent();
+    const tagTypes = await extractTagTypesFromLayouts(); // Extract tag types first
+    await processContent(tagTypes); // Pass tagTypes to processContent
 }
 
 console.time('runSSG Execution'); // Start timer
