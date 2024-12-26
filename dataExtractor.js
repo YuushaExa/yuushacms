@@ -76,8 +76,25 @@ async function generateMarkdownFromCsv(data) {
   for (const item of data) {
     const title = item.Title || 'Untitled';
     const slug = ensureUniqueSlug(sanitizeSlug(title), existingSlugs);
-    const frontMatter = matter.stringify('', { title });
-    const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n\`\`\`json\n${JSON.stringify(item, null, 2)}\n\`\`\``;
+
+    // Construct front matter with specific fields
+    const frontMatterData = {
+      title: title,
+      release_year: item['Release Year'], // Notice corrected keys
+      origin_ethnicity: item['Origin/Ethnicity'],
+      director: item.Director,
+      cast: item.Cast,
+      genre: item.Genre,
+      wiki_page: item['Wiki Page'],
+      plot: item.Plot,
+    };
+
+    // Use matter.stringify to create front matter
+    const frontMatter = matter.stringify('', frontMatterData);
+
+    // Construct markdown content, only including the plot
+    const markdownContent = `${frontMatter}\n\n${item.Plot || ''}`;
+
     const markdownFilePath = path.join(contentDir, `${slug}.md`);
 
     try {
@@ -104,10 +121,20 @@ async function generateMarkdownFromJson(data) {
   const existingSlugs = new Set();
 
   for (const item of data) {
-    const title = item.titles ? item.titles[0] : (item.title || 'Untitled');
+    const title = item.title || (item.titles && item.titles.length > 0 ? item.titles[0] : 'Untitled'); // Corrected title extraction
     const slug = ensureUniqueSlug(sanitizeSlug(title), existingSlugs);
-    const frontMatter = matter.stringify('', { title });
+
+    // Construct front matter with the title (no other fields are available in your example JSON)
+    const frontMatterData = {
+      title: title,
+    };
+
+    // Use matter.stringify to create front matter
+    const frontMatter = matter.stringify('', frontMatterData);
+
+    // Construct markdown content, including only the provided content and the JSON data
     const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n\`\`\`json\n${JSON.stringify(item, null, 2)}\n\`\`\``;
+
     const markdownFilePath = path.join(contentDir, `${slug}.md`);
 
     try {
