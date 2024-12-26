@@ -342,7 +342,9 @@ async function runSSG() {
     await processContent();
 }
 
-// Execute the static site generator
-runSSG().catch(error => {
+console.time('runSSG Execution'); // Start timer
+runSSG().then(() => {
+    console.timeEnd('runSSG Execution'); // End timer and log the duration
+}).catch(error => {
     console.error('Error during static site generation:', error);
 });
