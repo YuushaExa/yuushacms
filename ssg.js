@@ -295,11 +295,15 @@ async function processContent() {
         postSlices.push(posts.slice(i * postsPerPage, (i + 1) * postsPerPage));
     }
 
+const pagePromises = [];
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
-        const indexHTML = await generateIndex(postSlices, pageNumber, totalPages);
-        const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
-        await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
+        pagePromises.push((async () => {
+            const indexHTML = await generateIndex(postSlices, pageNumber, totalPages);
+            const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
+            await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
+        })());
     }
+await Promise.all(pagePromises);
 
     const pageEndTime = Date.now();
     const pageDuration = (pageEndTime - pageStartTime) / 1000;
