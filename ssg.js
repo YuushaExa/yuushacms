@@ -6,7 +6,7 @@ const csv = require('csv-parser');
 const axios = require('axios');
 const { Readable } = require('stream');
 
-const { extractCsvDataFromLayouts, extractJsonDataFromLayouts } = require('./dataExtractor');
+const { extractDataFromSources } = require('./dataExtractor');
 
 const contentDir = 'content';
 const PrebuildlayoutsDir = 'prebuild/layouts'; // Updated to point to prebuild/layouts
@@ -232,12 +232,12 @@ function generatePaginationLinks(currentPage, totalPages) {
 async function processContent() {
     // Track time for CSV and JSON processing
     const csvStartTime = Date.now();
-    const csvData = await extractCsvDataFromLayouts(config);
+    const csvData = await extractDataFromSources(config);
     const csvEndTime = Date.now();
     const csvDuration = (csvEndTime - csvStartTime) / 1000;
 
     const jsonStartTime = Date.now();
-    const jsonData = await extractJsonDataFromLayouts(config);
+    const jsonData = await extractDataFromSources(config);
     const jsonEndTime = Date.now();
     const jsonDuration = (jsonEndTime - jsonStartTime) / 1000;
 
