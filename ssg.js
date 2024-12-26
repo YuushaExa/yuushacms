@@ -302,6 +302,7 @@ async function processContent() {
 
     const pageEndTime = Date.now(); // End time for page creation
     const pageDuration = (pageEndTime - pageStartTime) / 1000; // Duration in seconds
+    const averageTimePerPage = totalPages > 0 ? (pageDuration / totalPages).toFixed(4) : 0;
 
     const totalEndTime = Date.now();
     const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
@@ -317,7 +318,7 @@ async function processContent() {
         console.log(`No posts were created.`);
     }
     
-    console.log(`Total Time for Page Creation: ${pageDuration.toFixed(4)} seconds`);
+        console.log(`Average Time per Page: ${averageTimePerPage} seconds`);
     
     if (skippedEntries.length > 0) {
         console.log(`Skipped Entries:`);
