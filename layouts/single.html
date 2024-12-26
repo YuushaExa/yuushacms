@@ -1,19 +1,20 @@
 <article class="post">
     <h1>{{ title }}</h1>
+
     {{#if release_year}}
-        <p>Released: <a href="/tags/release_year/{{ release_year }}">{{ release_year }}</a></p>
+        <p>Released: <a href="/yuushacms/tags/release_year/{{ release_year }}">{{ release_year }}</a></p>
     {{/if}}
     {{#if origin_ethnicity}}
-        <p>Country: <a href="/tags/origin_ethnicity/{{ origin_ethnicity }}">{{ origin_ethnicity }}</a></p>
+        <p>Country: <a href="/yuushacms/tags/origin_ethnicity/{{ origin_ethnicity }}">{{ origin_ethnicity }}</a></p>
     {{/if}}
     {{#if director}}
-        <p>Director: <a href="/tags/director/{{ director }}">{{ director }}</a></p>
+        <p>Director: <a href="/yuushacms/tags/director/{{ director }}">{{ director }}</a></p>
     {{/if}}
     {{#if cast}}
-        <p>Cast: <a href="/tags/cast/{{ cast }}">{{ cast }}</a></p>
+        <p>Cast: <a href="/yuushacms/tags/cast/{{ cast }}">{{ cast }}</a></p>
     {{/if}}
     {{#if genre}}
-        <p>Genre: <a href="/tags/genre/{{ genre }}">{{ genre }}</a></p>
+        <p>Genre: <a href="/yuushacms/tags/genre/{{ genre }}">{{ genre }}</a></p>
     {{/if}}
     {{#if wiki_page}}
         <a href="{{ wiki_page }}">Wiki Page</a>
