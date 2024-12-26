@@ -5,53 +5,40 @@ const csv = require('csv-parser');
 const axios = require('axios');
 
 const dataDir = 'prebuild/data';
-const contentDir = 'content';
+const contentDir = 'content'; // Ensure this path is correct
 
 async function extractDataFromSources() {
-    try {
-        await fs.ensureDir(contentDir);
-        const dataFiles = await fs.readdir(dataDir);
+  try {
+    await fs.ensureDir(contentDir);
+    const dataFiles = await fs.readdir(dataDir);
+    const dataContext = {};
 
-        for (const dataFile of dataFiles) {
-            if (dataFile.endsWith('.html')) {
-                const dataFilePath = path.join(dataDir, dataFile);
-                const dataFileContent = await fs.readFile(dataFilePath, 'utf-8');
-                const { data: frontMatter, content: htmlContent } = matter(dataFileContent);
+    for (const dataFile of dataFiles) {
+      if (dataFile.endsWith('.html')) {
+        const dataFilePath = path.join(dataDir, dataFile);
+        const dataFileContent = await fs.readFile(dataFilePath, 'utf-8');
+        const { data: frontMatter, content: htmlContent } = matter(dataFileContent);
 
-                const dataSource = frontMatter.data;
-                const mappings = { ...frontMatter };
-                delete mappings.data;
+        const dataSource = frontMatter.data;
+        const mappings = { ...frontMatter, ...extractDataFromHtmlContent(htmlContent) };
+        delete mappings.data;
 
-                if (dataSource) {
-                    let rawData;
-                    if (dataSource.startsWith('http://') || dataSource.startsWith('https://')) {
-                        // Handle remote URL
-                        rawData = await fetchDataFromUrl(dataSource);
-                    } else {
-                        // Handle local file
-                        const dataSourcePath = path.join(dataDir, dataSource);
-                        const dataSourceType = path.extname(dataSource).toLowerCase();
+        if (dataSource) {
+          let rawData = dataSource.startsWith('http')
+            ? await fetchDataFromUrl(dataSource)
+            : await readLocalDataSource(dataSource);
 
-                        if (dataSourceType === '.json') {
-                            rawData = await fs.readJson(dataSourcePath);
-                        } else if (dataSourceType === '.csv') {
-                            rawData = await readCsv(dataSourcePath);
-                        } else {
-                            console.warn(`Unsupported data source type: ${dataSourceType}`);
-                            continue;
-                        }
-                    }
-
-                    const extractedData = extractDataFromHtmlContent(htmlContent);
-                    Object.assign(mappings, extractedData);
-
-                    await generateMarkdownFromData(rawData, mappings, dataSource);
-                }
-            }
+          if (rawData) {
+            dataContext[dataFile.replace('.html', '')] = rawData.map(item => applyMappings(item, mappings));
+          }
         }
-    } catch (error) {
-        console.error(`Error during data extraction: ${error.message}`);
+      }
     }
+    return dataContext;
+  } catch (error) {
+    console.error(`Error during data extraction: ${error.message}`);
+    return {};
+  }
 }
 
 // Function to extract key-value pairs from HTML content
