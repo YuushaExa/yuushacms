@@ -13,8 +13,8 @@ function sanitizeSlug(input, maxLength = 50, separator = '-') {
         return ''; // Handle empty input
     }
     let slug = input.toLowerCase().trim();
-    slug = slug.replace(/[^a-z0-9\s-]/g, ''); 
-    slug = slug.replace(/[\s-]+/g, separator); 
+    slug = slug.replace(/[^a-z0-9\s-]/g, '');
+    slug = slug.replace(/[\s-]+/g, separator);
     slug = slug.substring(0, maxLength);
     slug = slug.replace(new RegExp(`^${separator}|${separator}$`, 'g'), '');
 
@@ -61,7 +61,7 @@ async function fetchCsv(url) {
 // Function to generate Markdown files from CSV data
 async function generateMarkdownFromCsv(data) {
     let postCounter = 1; // Initialize a counter for posts
-    const existingSlugs = new Set(); 
+    const existingSlugs = new Set();
 
     for (const item of data) {
         const frontMatter = matter.stringify('', {
@@ -72,11 +72,10 @@ async function generateMarkdownFromCsv(data) {
         let slug = sanitizeSlug(title); // Use the sanitizeSlug function to generate the slug
 
         // Fallback for empty slug
-       if (!slug) {
+        if (!slug) {
             console.warn('Generated slug is empty, using default "post"');
             slug = `post`;
         }
-
 
         let finalSlug = slug;
         let slugCounter = 1;
@@ -128,17 +127,39 @@ async function fetchJson(url) {
 
 // Function to generate Markdown files from JSON data
 async function generateMarkdownFromJson(data) {
+    const existingSlugs = new Set(); // Keep track of existing slugs
+
     for (const item of data) {
-        const title = item.titles[0] || 'Untitled';
+        const title = item.titles ? item.titles[0] : (item.title || 'Untitled'); // Handle different title properties
         const frontMatter = matter.stringify('', {
             title: title
         });
 
-        const slug = sanitizeSlug(title);
-        const markdownFilePath = path.join(contentDir, `${slug}.md`);
+        let slug = sanitizeSlug(title);
 
+        // Fallback for empty slug
+        if (!slug) {
+            console.warn('Generated slug is empty, using default "post"');
+            slug = `post`;
+        }
+
+        let finalSlug = slug;
+        let slugCounter = 1;
+        while (existingSlugs.has(finalSlug)) {
+            finalSlug = `${slug}-${slugCounter}`;
+            slugCounter++;
+        }
+        slug = finalSlug;
+        existingSlugs.add(slug);
+
+        const markdownFilePath = path.join(contentDir, `${slug}.md`);
         const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n${JSON.stringify(item, null, 2)}`;
-        await fs.writeFile(markdownFilePath, markdownContent);
+
+        try {
+            await fs.writeFile(markdownFilePath, markdownContent);
+        } catch (error) {
+            console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
+        }
     }
 }
 
