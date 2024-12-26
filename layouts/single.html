@@ -3,13 +3,26 @@
     <div class="post-content">
         {{ content }}
     </div>
-     <h1>{{ title }}</h1>
-    <p>Released: {{ release_year }}</p>
-    <p>Country: {{ origin_ethnicity }}</p>
-    <p>Director: {{ director }}</p>
-    <p>Cast: {{ cast }}</p>
-    <p>Genre: {{ genre }}</p>
-    <a href="{{ wiki_page }}">Wiki Page</a>
-        {{ plot }}
+    {{#if release_year}}
+        <p>Released: {{ release_year }}</p>
+    {{/if}}
+    {{#if origin_ethnicity}}
+        <p>Country: {{ origin_ethnicity }}</p>
+    {{/if}}
+    {{#if director}}
+        <p>Director: {{ director }}</p>
+    {{/if}}
+    {{#if cast}}
+        <p>Cast: {{ cast }}</p>
+    {{/if}}
+    {{#if genre}}
+        <p>Genre: {{ genre }}</p>
+    {{/if}}
+    {{#if wiki_page}}
+        <a href="{{ wiki_page }}">Wiki Page</a>
+    {{/if}}
+    {{#if plot}}
+        <p>{{ plot }}</p>
+    {{/if}}
 </article>
 single
