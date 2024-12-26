@@ -263,9 +263,9 @@ async function processContent() {
     const files = await fs.readdir(contentDir);
     const markdownFiles = [];
 
-   const tagTypes = await extractTagTypesFromLayouts();
-const tagData = {};
- 
+    const tagTypes = await extractTagTypesFromLayouts();
+    const tagData = {};
+
     // Traverse through the content directory
     for (const file of files) {
         const fullPath = `${contentDir}/${file}`;
@@ -293,18 +293,18 @@ const tagData = {};
     let postCount = 0;
 
     // Process all collected markdown files
- for (const file of markdownFiles) {
+    for (const file of markdownFiles) {
         const postStartTime = Date.now();
         const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
 
-  
         if (!data.title) {
             skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
             continue;
         }
-     const context = { ...data, content: htmlContent };
+
+        const context = { ...data, content: htmlContent };
         const html = await generateSingleHTML(data.title, htmlContent, file, context);
 
         const slug = file.replace('.md', '');
@@ -317,47 +317,32 @@ const tagData = {};
         const postTitle = data.title || slug.replace(/-/g, ' ');
         posts.push({ title: postTitle, url: `${slug}.html` });
 
+        // Collect tag data using extracted tag types (INSIDE THE LOOP)
+        tagTypes.forEach(tagType => {
+            if (data[tagType]) {
+                const tagValues = Array.isArray(data[tagType]) ? data[tagType] : [data[tagType]];
+                tagValues.forEach(tagValue => {
+                    const sanitizedTagValue = sanitizeTagValue(tagValue);
+                    if (!tagData[tagType]) {
+                        tagData[tagType] = {};
+                    }
+                    if (!tagData[tagType][sanitizedTagValue]) {
+                        tagData[tagType][sanitizedTagValue] = [];
+                    }
+                    tagData[tagType][sanitizedTagValue].push({ title: postTitle, url: `${slug}.html` });
+                });
+            }
+        });
+
         const postEndTime = Date.now();
         const postDuration = (postEndTime - postStartTime) / 1000;
         totalPostDuration += postDuration;
         postCount++;
     }
-  await generateTagPages(tagData);
 
-function sanitizeTagValue(tagValue) {
-    return encodeURIComponent(tagValue.toLowerCase().replace(/\s+/g, '-'));
-}
+    // Generate tag pages AFTER the main loop has finished processing all files
+    await generateTagPages(tagData);
 
-async function generateTagPages(tagData) {
-    const tagTemplate = layoutCache['tag'] || await readFile(layoutsDir, 'tag');
-
-    for (const tagType in tagData) {
-        for (const tagValue in tagData[tagType]) {
-            const posts = tagData[tagType][tagValue];
-            const totalPages = Math.ceil(posts.length / config.pagination.postsPerPage);
-
-            for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
-                const pagePosts = posts.slice((pageNumber - 1) * config.pagination.postsPerPage, pageNumber * config.pagination.postsPerPage);
-                const prevPage = pageNumber > 1 ? `/tags/${tagType}/${tagValue}/page-${pageNumber - 1}.html` : null;
-                const nextPage = pageNumber < totalPages ? `/tags/${tagType}/${tagValue}/page-${pageNumber + 1}.html` : null;
-
-                const renderedContent = await renderTemplate(tagTemplate, {
-                    tagType: tagType,
-                    tagValue: tagValue,
-                    posts: pagePosts,
-                    prevPage: prevPage,
-                    nextPage: nextPage
-                });
-
-                const tagPageDir = path.join(outputDir, 'tags', tagType, tagValue);
-                await fs.ensureDir(tagPageDir);
-                const outputFilePath = path.join(tagPageDir, pageNumber === 1 ? 'index.html' : `page-${pageNumber}.html`);
-                await fs.writeFile(outputFilePath, await renderWithBase(renderedContent, { title: `Tag: ${tagValue}` }));
-            }
-        }
-    }
-}
- 
     // Generate paginated index pages
     const postsPerPage = config.pagination.postsPerPage;
     const totalPages = Math.ceil(posts.length / postsPerPage);
@@ -368,23 +353,6 @@ async function generateTagPages(tagData) {
         postSlices.push(posts.slice(i * postsPerPage, (i + 1) * postsPerPage));
     }
 
-
- tagTypes.forEach(tagType => {
-           if (data[tagType]) {
-               const tagValues = Array.isArray(data[tagType]) ? data[tagType] : [data[tagType]];
-               tagValues.forEach(tagValue => {
-                   const sanitizedTagValue = sanitizeTagValue(tagValue);
-                   if (!tagData[tagType]) {
-                       tagData[tagType] = {};
-                   }
-                   if (!tagData[tagType][sanitizedTagValue]) {
-                       tagData[tagType][sanitizedTagValue] = [];
-                   }
-                   tagData[tagType][sanitizedTagValue].push({ title: postTitle, url: `${slug}.html` });
-               });
-           }
-       });
- 
     const pagePromises = [];
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
         pagePromises.push((async () => {
@@ -426,6 +394,42 @@ async function generateTagPages(tagData) {
     }
 
     console.log(`Total Build Time: ${totalElapsed} seconds`);
+}
+
+// Helper function to sanitize tag values (used in generateTagPages and tag collection)
+function sanitizeTagValue(tagValue) {
+    return encodeURIComponent(tagValue.toLowerCase().replace(/\s+/g, '-'));
+}
+
+// Function to generate tag pages (no changes needed here)
+async function generateTagPages(tagData) {
+    const tagTemplate = layoutCache['tag'] || await readFile(layoutsDir, 'tag');
+
+    for (const tagType in tagData) {
+        for (const tagValue in tagData[tagType]) {
+            const posts = tagData[tagType][tagValue];
+            const totalPages = Math.ceil(posts.length / config.pagination.postsPerPage);
+
+            for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+                const pagePosts = posts.slice((pageNumber - 1) * config.pagination.postsPerPage, pageNumber * config.pagination.postsPerPage);
+                const prevPage = pageNumber > 1 ? `/tags/${tagType}/${tagValue}/page-${pageNumber - 1}.html` : null;
+                const nextPage = pageNumber < totalPages ? `/tags/${tagType}/${tagValue}/page-${pageNumber + 1}.html` : null;
+
+                const renderedContent = await renderTemplate(tagTemplate, {
+                    tagType: tagType,
+                    tagValue: tagValue,
+                    posts: pagePosts,
+                    prevPage: prevPage,
+                    nextPage: nextPage
+                });
+
+                const tagPageDir = path.join(outputDir, 'tags', tagType, tagValue);
+                await fs.ensureDir(tagPageDir);
+                const outputFilePath = path.join(tagPageDir, pageNumber === 1 ? 'index.html' : `page-${pageNumber}.html`);
+                await fs.writeFile(outputFilePath, await renderWithBase(renderedContent, { title: `Tag: ${tagValue}` }));
+            }
+        }
+    }
 }
 
 // Main SSG execution
