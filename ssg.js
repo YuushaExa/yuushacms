@@ -61,9 +61,8 @@ async function readFile(dir, name) {
 
 // Function to preload layouts and partials based on config
 async function preloadTemplates() {
-    // Preload Layouts
     const layoutFiles = await fs.readdir(layoutsDir);
-    const layoutPromises = layoutFiles.map(async (file) => {
+    for (const file of layoutFiles) {
         if (file.endsWith('.html')) {
             const layoutName = file.replace('.html', '');
 
@@ -73,22 +72,16 @@ async function preloadTemplates() {
                 !config.layouts.exclude.includes(layoutName);
 
             if (shouldIncludeLayout) {
-                try {
-                    const content = await fs.readFile(path.join(layoutsDir, file), 'utf-8');
-                    layoutCache[layoutName] = content;
-                    console.log(`Preloaded layout: ${layoutName}`);
-                } catch (err) {
-                    console.error(`Error preloading layout ${layoutName}:`, err);
-                }
+                layoutCache[layoutName] = await fs.readFile(`${layoutsDir}/${file}`, 'utf-8');
+                console.log(`Preloaded layout: ${layoutName}`);
             } else {
                 console.log(`Skipped layout: ${layoutName}`);
             }
         }
-    });
+    }
 
-    // Preload Partials
     const partialFiles = await fs.readdir(partialsDir);
-    const partialPromises = partialFiles.map(async (file) => {
+    for (const file of partialFiles) {
         if (file.endsWith('.html')) {
             const partialName = file.replace('.html', '');
 
@@ -98,21 +91,13 @@ async function preloadTemplates() {
                 !config.partials.exclude.includes(partialName);
 
             if (shouldIncludePartial) {
-                try {
-                    const content = await fs.readFile(path.join(partialsDir, file), 'utf-8');
-                    partialCache[partialName] = content;
-                    console.log(`Preloaded partial: ${partialName}`);
-                } catch (err) {
-                    console.error(`Error preloading partial ${partialName}:`, err);
-                }
+                partialCache[partialName] = await fs.readFile(`${partialsDir}/${file}`, 'utf-8');
+                console.log(`Preloaded partial: ${partialName}`);
             } else {
                 console.log(`Skipped partial: ${partialName}`);
             }
         }
-    });
-
-    // Wait for all layout and partial promises to resolve
-    await Promise.all([...layoutPromises, ...partialPromises]);
+    }
 }
 
 // Function to render a template with context and partials
@@ -310,19 +295,15 @@ async function processContent() {
         postSlices.push(posts.slice(i * postsPerPage, (i + 1) * postsPerPage));
     }
 
-const pagePromises = [];
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
-        pagePromises.push((async () => {
-            const indexHTML = await generateIndex(postSlices, pageNumber, totalPages);
-            const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
-            await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
-        })());
+        const indexHTML = await generateIndex(postSlices, pageNumber, totalPages);
+        const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
+        await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
     }
-await Promise.all(pagePromises);
 
     const pageEndTime = Date.now();
     const pageDuration = (pageEndTime - pageStartTime) / 1000;
-    const averageTimePerPage = totalPages > 0 ? (pageDuration / totalPages).toFixed(5) : 0;
+    const averageTimePerPage = totalPages > 0 ? (pageDuration / totalPages).toFixed(4) : 0;
 
     const totalEndTime = Date.now();
     const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(5);
