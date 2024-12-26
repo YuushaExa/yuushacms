@@ -230,16 +230,11 @@ function generatePaginationLinks(currentPage, totalPages) {
 
 // Main content processing function
 async function processContent() {
-    // Track time for CSV and JSON processing
-    const csvStartTime = Date.now();
-    const csvData = await extractDataFromSources(config);
-    const csvEndTime = Date.now();
-    const csvDuration = (csvEndTime - csvStartTime) / 1000;
-
-    const jsonStartTime = Date.now();
-    const jsonData = await extractDataFromSources(config);
-    const jsonEndTime = Date.now();
-    const jsonDuration = (jsonEndTime - jsonStartTime) / 1000;
+    // Track time for data extraction
+    const dataStartTime = Date.now();
+    const extractedData = await extractDataFromSources(config); // ONLY ONE CALL NEEDED
+    const dataEndTime = Date.now();
+    const dataDuration = (dataEndTime - dataStartTime) / 1000;
 
     const files = await fs.readdir(contentDir);
     const markdownFiles = [];
@@ -310,7 +305,7 @@ async function processContent() {
         postSlices.push(posts.slice(i * postsPerPage, (i + 1) * postsPerPage));
     }
 
-const pagePromises = [];
+    const pagePromises = [];
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
         pagePromises.push((async () => {
             const indexHTML = await generateIndex(postSlices, pageNumber, totalPages);
@@ -318,7 +313,7 @@ const pagePromises = [];
             await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
         })());
     }
-await Promise.all(pagePromises);
+    await Promise.all(pagePromises);
 
     const pageEndTime = Date.now();
     const pageDuration = (pageEndTime - pageStartTime) / 1000;
@@ -331,8 +326,7 @@ await Promise.all(pagePromises);
     console.log(`Total Entries Processed: ${markdownFiles.length}`);
     console.log(`Total Posts Created: ${posts.length}`);
     console.log(`Total Pages Created: ${totalPages}`);
-    console.log(`Time taken to process CSV data: ${csvDuration} seconds`);
-    console.log(`Time taken to process JSON data: ${jsonDuration} seconds`);
+    console.log(`Time taken to process data: ${dataDuration} seconds`);
 
     if (postCount > 0) {
         console.log(`Average Time per Post: ${(totalPostDuration / postCount).toFixed(5)} seconds`);
