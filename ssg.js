@@ -307,10 +307,10 @@ await Promise.all(pagePromises);
 
     const pageEndTime = Date.now();
     const pageDuration = (pageEndTime - pageStartTime) / 1000;
-    const averageTimePerPage = totalPages > 0 ? (pageDuration / totalPages).toFixed(4) : 0;
+    const averageTimePerPage = totalPages > 0 ? (pageDuration / totalPages).toFixed(5) : 0;
 
     const totalEndTime = Date.now();
-    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(4);
+    const totalElapsed = ((totalEndTime - startTime) / 1000).toFixed(5);
 
     console.log('--- Build Statistics ---');
     console.log(`Total Entries Processed: ${markdownFiles.length}`);
@@ -320,7 +320,7 @@ await Promise.all(pagePromises);
     console.log(`Time taken to process JSON data: ${jsonDuration} seconds`);
 
     if (postCount > 0) {
-        console.log(`Average Time per Post: ${(totalPostDuration / postCount).toFixed(4)} seconds`);
+        console.log(`Average Time per Post: ${(totalPostDuration / postCount).toFixed(5)} seconds`);
     } else {
         console.log(`No posts were created.`);
     }
