@@ -77,7 +77,7 @@ async function generateMarkdownFromCsv(data) {
     const title = item.Title || 'Untitled';
     const slug = ensureUniqueSlug(sanitizeSlug(title), existingSlugs);
     const frontMatter = matter.stringify('', { title });
-    const markdownContent = `${frontMatter}\n\n${item.Plot || ''}`; 
+    const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n\`\`\`json\n${JSON.stringify(item, null, 2)}\n\`\`\``;
     const markdownFilePath = path.join(contentDir, `${slug}.md`);
 
     try {
