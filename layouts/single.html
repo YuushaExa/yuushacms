@@ -1,19 +1,19 @@
 <article class="post">
     <h1>{{ title }}</h1>
     {{#if release_year}}
-        <p>Released: {{ release_year }}</p>
+        <p>Released: <a href="/tags/release_year/{{ release_year }}">{{ release_year }}</a></p>
     {{/if}}
     {{#if origin_ethnicity}}
-        <p>Country: {{ origin_ethnicity }}</p>
+        <p>Country: <a href="/tags/origin_ethnicity/{{ origin_ethnicity }}">{{ origin_ethnicity }}</a></p>
     {{/if}}
     {{#if director}}
-        <p>Director: {{ director }}</p>
+        <p>Director: <a href="/tags/director/{{ director }}">{{ director }}</a></p>
     {{/if}}
     {{#if cast}}
-        <p>Cast: {{ cast }}</p>
+        <p>Cast: <a href="/tags/cast/{{ cast }}">{{ cast }}</a></p>
     {{/if}}
     {{#if genre}}
-        <p>Genre: {{ genre }}</p>
+        <p>Genre: <a href="/tags/genre/{{ genre }}">{{ genre }}</a></p>
     {{/if}}
     {{#if wiki_page}}
         <a href="{{ wiki_page }}">Wiki Page</a>
@@ -22,4 +22,3 @@
         <p>{{ plot }}</p>
     {{/if}}
 </article>
-single
