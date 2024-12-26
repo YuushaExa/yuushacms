@@ -77,7 +77,7 @@ async function generateMarkdownFromCsv(data) {
     const title = item.Title || 'Untitled';
     const slug = ensureUniqueSlug(sanitizeSlug(title), existingSlugs);
     const frontMatter = matter.stringify('', { title });
-    const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n\`\`\`json\n${JSON.stringify(item, null, 2)}\n\`\`\``;
+    const markdownContent = `${frontMatter}\n\n${item.Plot || ''}`; 
     const markdownFilePath = path.join(contentDir, `${slug}.md`);
 
     try {
@@ -87,6 +87,7 @@ async function generateMarkdownFromCsv(data) {
     }
   }
 }
+
 
 // Function to fetch JSON data from a URL
 async function fetchJson(url) {
