@@ -1,204 +1,136 @@
 const fs = require('fs-extra');
-const path = require('path');
-const matter = require('gray-matter');
-const csv = require('csv-parser');
 const axios = require('axios');
+const path = require('path');
+const csv = require('csv-parser');
+const matter = require('gray-matter');
 
-const dataDir = 'prebuild/data';
-const contentDir = 'content'; // Ensure this path is correct
+// Directory configuration
+const contentDir = 'content';
 
-async function extractDataFromSources() {
+// Utility function to sanitize slugs
+function sanitizeSlug(input, maxLength = 50, separator = '-') {
+  if (!input) {
+    return 'post'; // Handle empty input with a default
+  }
+  let slug = input.toLowerCase().trim();
+  slug = slug.replace(/[^a-z0-9\s-]/g, '');
+  slug = slug.replace(/[\s-]+/g, separator);
+  slug = slug.substring(0, maxLength);
+  slug = slug.replace(new RegExp(`^${separator}|${separator}$`, 'g'), '');
+
+  return slug || 'post'; // Ensure a slug is always returned, default to 'post' if empty after sanitization
+}
+
+// Function to extract and process data from CSV and JSON URLs
+async function extractDataFromSources(config) {
   try {
+    // Ensure the content directory exists
     await fs.ensureDir(contentDir);
-    const dataFiles = await fs.readdir(dataDir);
-    const dataContext = {};
 
-    for (const dataFile of dataFiles) {
-      if (dataFile.endsWith('.html')) {
-        const dataFilePath = path.join(dataDir, dataFile);
-        const dataFileContent = await fs.readFile(dataFilePath, 'utf-8');
-        const { data: frontMatter, content: htmlContent } = matter(dataFileContent);
+    const csvPromises = (config.csv.include || []).map(url => processDataSource(url, 'csv'));
+    const jsonPromises = (config.json.include || []).map(url => processDataSource(url, 'json'));
 
-        const dataSource = frontMatter.data;
-        const mappings = { ...frontMatter, ...extractDataFromHtmlContent(htmlContent) };
-        delete mappings.data;
-
-        if (dataSource) {
-          let rawData = dataSource.startsWith('http')
-            ? await fetchDataFromUrl(dataSource)
-            : await readLocalDataSource(dataSource);
-
-          if (rawData) {
-            dataContext[dataFile.replace('.html', '')] = rawData.map(item => applyMappings(item, mappings));
-          }
-        }
-      }
-    }
-    return dataContext;
+    await Promise.all([...csvPromises, ...jsonPromises]);
   } catch (error) {
     console.error(`Error during data extraction: ${error.message}`);
-    return {};
   }
 }
 
-// Function to extract key-value pairs from HTML content
-function extractDataFromHtmlContent(htmlContent) {
-    const data = {};
-    const lines = htmlContent.split('\n');
-
-    for (const line of lines) {
-        if (line.trim() === '---') continue;
-        const [key, value] = line.split('=').map(s => s.trim());
-        if (key && value) {
-            data[key] = value;
-        }
-    }
-
-    return data;
-}
-
-async function fetchDataFromUrl(url) {
+// Function to process data source based on type
+async function processDataSource(url, type) {
   try {
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
-    const contentType = response.headers['content-type'];
-
-    if (contentType.includes('application/json')) {
-      return JSON.parse(response.data.toString('utf8'));
-    } else if (contentType.includes('text/csv')) {
-      return await readCsvFromBuffer(response.data);
-    } else {
-      console.warn(`Unsupported content type for URL ${url}: ${contentType}`);
-      return null;
+    if (type === 'csv') {
+      const csvData = await fetchCsv(url);
+      await generateMarkdownFromCsv(csvData);
+    } else if (type === 'json') {
+      const jsonData = await fetchJson(url);
+      await generateMarkdownFromJson(jsonData);
     }
   } catch (error) {
-    console.error(`Error fetching data from URL ${url}: ${error.message}`);
-    throw error;
+    console.error(`Error processing ${type} from URL ${url}: ${error.message}`);
   }
 }
 
-function getDataSourceTypeFromUrl(url) {
-  const parsedUrl = new URL(url);
-  const pathname = parsedUrl.pathname;
-  return path.extname(pathname).toLowerCase();
-}
+// Function to fetch CSV data from a URL
+async function fetchCsv(url) {
+  try {
+    const response = await axios.get(url, { responseType: 'stream' });
+    const results = [];
 
-async function readCsvFromBuffer(buffer) {
     return new Promise((resolve, reject) => {
-        const results = [];
-        const text = buffer.toString('utf8'); // Convert buffer to string
-        const stream = require('stream');
-        const readableStream = new stream.Readable();
-        readableStream.push(text);
-        readableStream.push(null); // Signal end of data
-
-        readableStream
-            .pipe(csv())
-            .on('data', (data) => results.push(data))
-            .on('end', () => resolve(results))
-            .on('error', (error) => reject(error));
+      response.data
+        .pipe(csv())
+        .on('data', (data) => results.push(data))
+        .on('end', () => resolve(results))
+        .on('error', (error) => reject(error));
     });
+  } catch (error) {
+    throw new Error(`Failed to fetch CSV from ${url}: ${error.message}`);
+  }
 }
 
-async function readCsv(filePath) {
-    return new Promise((resolve, reject) => {
-        const results = [];
-        fs.createReadStream(filePath)
-            .pipe(csv())
-            .on('data', (data) => results.push(data))
-            .on('end', () => resolve(results))
-            .on('error', (error) => reject(error));
-    });
-}
+// Function to generate Markdown files from CSV data
+async function generateMarkdownFromCsv(data) {
+  const existingSlugs = new Set();
 
-function applyMappings(item, mappings) {
-    const mappedItem = {};
-    for (const [templateVar, dataPath] of Object.entries(mappings)) {
-        if (dataPath.startsWith('.')) {
-            // Handle JSON path
-            mappedItem[templateVar] = getJsonValue(item, dataPath);
-        } else {
-            // Handle direct values or other mappings
-            mappedItem[templateVar] = dataPath;
-        }
+  for (const item of data) {
+    const title = item.Title || 'Untitled';
+    const slug = ensureUniqueSlug(sanitizeSlug(title), existingSlugs);
+    const frontMatter = matter.stringify('', { title });
+    const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n\`\`\`json\n${JSON.stringify(item, null, 2)}\n\`\`\``;
+    const markdownFilePath = path.join(contentDir, `${slug}.md`);
+
+    try {
+      await fs.writeFile(markdownFilePath, markdownContent);
+    } catch (error) {
+      console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
     }
-    return mappedItem;
+  }
 }
 
-function getJsonValue(item, path) {
-    const pathParts = path.substring(1).split('.');
-    let value = item;
-    for (const part of pathParts) {
-        if (value[part] !== undefined) {
-            value = value[part];
-        } else {
-            return undefined;
-        }
+
+// Function to fetch JSON data from a URL
+async function fetchJson(url) {
+  try {
+    const response = await axios.get(url);
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to fetch JSON from ${url}: ${error.message}`);
+  }
+}
+
+// Function to generate Markdown files from JSON data
+async function generateMarkdownFromJson(data) {
+  const existingSlugs = new Set();
+
+  for (const item of data) {
+    const title = item.titles ? item.titles[0] : (item.title || 'Untitled');
+    const slug = ensureUniqueSlug(sanitizeSlug(title), existingSlugs);
+    const frontMatter = matter.stringify('', { title });
+    const markdownContent = `${frontMatter}\n\n${item.content || ''}\n\n\`\`\`json\n${JSON.stringify(item, null, 2)}\n\`\`\``;
+    const markdownFilePath = path.join(contentDir, `${slug}.md`);
+
+    try {
+      await fs.writeFile(markdownFilePath, markdownContent);
+    } catch (error) {
+      console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
     }
-    return value;
+  }
 }
 
-async function generateMarkdownFromData(data, mappings, dataSourceName) {
-    const existingSlugs = new Set();
-
-    for (const item of data) {
-        const mappedItem = applyMappings(item, mappings);
-        const title = mappedItem.title || 'Untitled';
-        const slug = ensureUniqueSlug(sanitizeSlug(title), existingSlugs);
-        const frontMatter = matter.stringify('', { title });
-
-        let markdownContent = `${frontMatter}\n\n`;
-
-        // Add mapped data as variables in Markdown
-        for (const [key, value] of Object.entries(mappedItem)) {
-            if (typeof value === 'string') {
-                markdownContent += `{{ ${key} }} = "${value}"\n`;
-            } else {
-                markdownContent += `{{ ${key} }} = ${JSON.stringify(value)}\n`;
-            }
-        }
-        // Check if there's content from HTML
-        const plotContent = mappings['plot'];
-        if (plotContent) {
-          markdownContent += `\n${plotContent}\n`;
-        }
-
-        markdownContent += `\n\`\`\`json\n${JSON.stringify(item, null, 2)}\n\`\`\``;
-
-        const markdownFilePath = path.join(contentDir, `${slug}.md`);
-        try {
-            await fs.writeFile(markdownFilePath, markdownContent);
-        } catch (error) {
-            console.error(`Error creating Markdown file: ${markdownFilePath}, Error: ${error.message}`);
-        }
-    }
-}
-
-// Utility function to sanitize slugs (keep this as it is)
-function sanitizeSlug(input, maxLength = 50, separator = '-') {
-    if (!input) {
-        return 'post';
-    }
-    let slug = input.toLowerCase().trim();
-    slug = slug.replace(/[^a-z0-9\s-]/g, '');
-    slug = slug.replace(/[\s-]+/g, separator);
-    slug = slug.substring(0, maxLength);
-    slug = slug.replace(new RegExp(`^${separator}|${separator}$`, 'g'), '');
-
-    return slug || 'post';
-}
-
-// Function to ensure unique slugs (keep this as it is)
+// Function to ensure unique slugs
 function ensureUniqueSlug(slug, existingSlugs) {
-    let finalSlug = slug;
-    let slugCounter = 1;
-    while (existingSlugs.has(finalSlug)) {
-        finalSlug = `${slug}-${slugCounter}`;
-        slugCounter++;
-    }
-    existingSlugs.add(finalSlug);
-    return finalSlug;
+  let finalSlug = slug;
+  let slugCounter = 1;
+  while (existingSlugs.has(finalSlug)) {
+    finalSlug = `${slug}-${slugCounter}`;
+    slugCounter++;
+  }
+  existingSlugs.add(finalSlug);
+  return finalSlug;
 }
 
+// Export the main function for use in other files
 module.exports = {
-    extractDataFromSources,
+  extractDataFromSources,
 };
