@@ -1,20 +1,11 @@
-{{ /* Get data. */}}
-{{$data = "games.json"}}
-
-{{- /* Write content page. */}}
-{{- range $data }}
-  {{- $title := .title}} 
-  {{- $date := .date}} 
-  {{- $content := .content}} 
-
-  {{- $frontMatter := dict
-      "title": $title
-      "date": $date
-      "description": $content
-  }}
-  ---
-  {{- $frontMatter | toYaml }}
-  ---
-
-  {{- $content }}
-{{ end }}
+data = "games.json"
+---
+release_year = .year
+title = .title
+origin_ethnicity = .country
+director = .director
+cast = .cast
+genre = .genre
+wiki_page = .wiki
+---
+plot = .content
