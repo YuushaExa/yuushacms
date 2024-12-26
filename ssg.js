@@ -170,10 +170,14 @@ async function renderWithBase(templateContent, context = {}) {
     return await renderTemplate(baseTemplate, { ...context, content: templateContent });
 }
 
-async function generateSingleHTML(title, content, fileName) {
+async function generateSingleHTML(title, content, fileName, context = {}) {
     const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' ');
     const singleTemplate = layoutCache['single'] || await readFile(layoutsDir, 'single');
-    const renderedContent = await renderTemplate(singleTemplate, { title: finalTitle, content });
+
+    // Merge the existing context with the new data
+    const mergedContext = { ...context, title: finalTitle, content };
+
+    const renderedContent = await renderTemplate(singleTemplate, mergedContext);
     return await renderWithBase(renderedContent, { title: finalTitle });
 }
 
@@ -266,7 +270,7 @@ async function processContent() {
     let postCount = 0;
 
     // Process all collected markdown files
-    for (const file of markdownFiles) {
+ for (const file of markdownFiles) {
         const postStartTime = Date.now();
         const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
         const { data, content: mdContent } = matter(content);
@@ -276,8 +280,8 @@ async function processContent() {
             skippedEntries.push({ title: file.replace('.md', ''), link: `${file.replace('.md', '')}.html` });
             continue;
         }
-
-        const html = await generateSingleHTML(data.title, htmlContent, file);
+     const context = { ...data, content: htmlContent };
+        const html = await generateSingleHTML(data.title, htmlContent, file, context);
 
         const slug = file.replace('.md', '');
         const outputFilePath = path.join(outputDir, `${slug}.html`);
