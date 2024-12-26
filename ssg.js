@@ -7,7 +7,7 @@ const axios = require('axios');
 const { Readable } = require('stream');
 
 const { extractDataFromSources } = require('./dataExtractor');
-
+ 
 const contentDir = 'content';
 const PrebuildlayoutsDir = 'prebuild/layouts'; // Updated to point to prebuild/layouts
 const outputDir = 'public';
