@@ -43,7 +43,20 @@ const partialCache = {};
 
 // Function to read a file from a directory with caching
 async function readFile(dir, name) {
- 
+    const cache = dir === layoutsDir ? layoutCache : partialCache;
+    const filePath = `${dir}/${name}.html`;
+
+    if (cache[name]) {
+        return cache[name];
+    }
+
+    if (await fs.pathExists(filePath)) {
+        const content = await fs.readFile(filePath, 'utf-8');
+        cache[name] = content;
+        return content;
+    }
+
+    return '';
 }
 
 // Function to preload layouts and partials based on config
