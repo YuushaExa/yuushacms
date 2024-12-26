@@ -1,14 +1,15 @@
 <h1>Posts tagged with "{{ tagValue }}"</h1>
 
 <ul>
-    {{#each posts}}
-        <li><a href="{{ url }}">{{ title }}</a></li>
-    {{/each}}
+  {{#each posts}}
+    <li><a href="/yuushacms/{{ url }}">{{ title }}</a></li>
+  {{/each}}
 </ul>
 
+<!-- Optional Pagination -->
 {{#if prevPage}}
-    <a href="{{ prevPage }}">Previous</a>
+<a href="{{ prevPage }}">Previous</a>
 {{/if}}
 {{#if nextPage}}
-    <a href="{{ nextPage }}">Next</a>
+<a href="{{ nextPage }}">Next</a>
 {{/if}}
