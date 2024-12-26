@@ -8,13 +8,12 @@ const { Readable } = require('stream');
 
 const { extractCsvDataFromLayouts, extractJsonDataFromLayouts } = require('./dataExtractor');
 
-
 const contentDir = 'content';
 const PrebuildlayoutsDir = 'prebuild/layouts'; // Updated to point to prebuild/layouts
 const outputDir = 'public';
 const dataDir = 'prebuild/data'; // Directory for JSON data sources
 const partialsDir = 'partials';
-const layoutsDir = 'layouts'; 
+const layoutsDir = 'layouts';
 
 // Configuration for layouts, partials, JSON, and CSV
 const config = {
@@ -34,11 +33,10 @@ const config = {
         include: ["https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"], // Specify CSV files to include "https://github.com/YuushaExa/v/releases/download/csvv2/wiki_movie_plots_deduped.csv"
         exclude: []   // Specify CSV files to exclude
     },
-     pagination: {
+    pagination: {
         postsPerPage: 10 // Adjust this value as needed
     }
 };
-
 
 const layoutCache = {};
 const partialCache = {};
@@ -102,12 +100,11 @@ async function preloadTemplates() {
     }
 }
 
-
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
-        context.currentYear = new Date().getFullYear();
+    context.currentYear = new Date().getFullYear();
 
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
@@ -130,7 +127,7 @@ async function renderTemplate(template, context = {}) {
             const renderedItems = await Promise.all(
                 items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
             );
-                       template = template.replace(fullMatch, renderedItems.join(''));
+            template = template.replace(fullMatch, renderedItems.join(''));
         } else {
             template = template.replace(fullMatch, '');
         }
@@ -166,10 +163,9 @@ async function generateSingleHTML(title, content, fileName) {
 }
 
 async function generateIndex(postSlices, pageNumber, totalPages) {
-     
     // Slice the posts array to get the current page posts
-const pagePosts = postSlices[pageNumber - 1];
-    
+    const pagePosts = postSlices[pageNumber - 1];
+
     const listTemplate = layoutCache['list'] || await readFile(layoutsDir, 'list');
     const indexTemplate = layoutCache['index'] || await readFile(layoutsDir, 'index');
 
@@ -180,17 +176,16 @@ const pagePosts = postSlices[pageNumber - 1];
     const prevPage = pageNumber > 1 ? `/yuushacms/index-${pageNumber - 1}.html` : null;
     const nextPage = pageNumber < totalPages ? `/yuushacms/index-${pageNumber + 1}.html` : null;
 
-    const renderedContent = await renderTemplate(indexTemplate, { 
-        list: listHTML, 
+    const renderedContent = await renderTemplate(indexTemplate, {
+        list: listHTML,
         currentPage: pageNumber,
         totalPages: totalPages,
         prevPage: prevPage,
         nextPage: nextPage
     });
-    
+
     return await renderWithBase(renderedContent, { title: 'Home' });
 }
-
 
 // Function to generate pagination links
 function generatePaginationLinks(currentPage, totalPages) {
@@ -218,12 +213,19 @@ function generatePaginationLinks(currentPage, totalPages) {
     return links;
 }
 
-
 // Main content processing function
 async function processContent() {
-    await extractJsonDataFromLayouts(config);
-    await extractCsvDataFromLayouts(config);
-    
+    // Track time for CSV and JSON processing
+    const csvStartTime = Date.now();
+    const csvData = await extractCsvDataFromLayouts(config);
+    const csvEndTime = Date.now();
+    const csvDuration = (csvEndTime - csvStartTime) / 1000;
+
+    const jsonStartTime = Date.now();
+    const jsonData = await extractJsonDataFromLayouts(config);
+    const jsonEndTime = Date.now();
+    const jsonDuration = (jsonEndTime - jsonStartTime) / 1000;
+
     const files = await fs.readdir(contentDir);
     const markdownFiles = [];
 
@@ -250,12 +252,12 @@ async function processContent() {
     const skippedEntries = [];
     const startTime = Date.now();
 
-    let totalPostDuration = 0; // Initialize total post duration
-    let postCount = 0; // Initialize post count
+    let totalPostDuration = 0;
+    let postCount = 0;
 
     // Process all collected markdown files
     for (const file of markdownFiles) {
-        const postStartTime = Date.now(); // Start time for post creation
+        const postStartTime = Date.now();
         const content = await fs.readFile(`${contentDir}/${file}`, 'utf-8');
         const { data, content: mdContent } = matter(content);
         const htmlContent = marked(mdContent);
@@ -277,31 +279,30 @@ async function processContent() {
         const postTitle = data.title || slug.replace(/-/g, ' ');
         posts.push({ title: postTitle, url: `${slug}.html` });
 
-        const postEndTime = Date.now(); // End time for post creation
-        const postDuration = (postEndTime - postStartTime) / 1000; // Duration in seconds
-        totalPostDuration += postDuration; // Accumulate total post duration
-        postCount++; // Increment post count
-
+        const postEndTime = Date.now();
+        const postDuration = (postEndTime - postStartTime) / 1000;
+        totalPostDuration += postDuration;
+        postCount++;
     }
 
     // Generate paginated index pages
     const postsPerPage = config.pagination.postsPerPage;
     const totalPages = Math.ceil(posts.length / postsPerPage);
-    const pageStartTime = Date.now(); // Start time for page creation
-  const postSlices = [];
+    const pageStartTime = Date.now();
+    const postSlices = [];
 
     for (let i = 0; i < totalPages; i++) {
         postSlices.push(posts.slice(i * postsPerPage, (i + 1) * postsPerPage));
     }
-    
+
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
-        const indexHTML = await generateIndex(posts, pageNumber);
+        const indexHTML = await generateIndex(postSlices, pageNumber, totalPages);
         const pageFileName = pageNumber === 1 ? 'index.html' : `index-${pageNumber}.html`;
         await fs.writeFile(`${outputDir}/${pageFileName}`, indexHTML);
     }
 
-    const pageEndTime = Date.now(); // End time for page creation
-    const pageDuration = (pageEndTime - pageStartTime) / 1000; // Duration in seconds
+    const pageEndTime = Date.now();
+    const pageDuration = (pageEndTime - pageStartTime) / 1000;
     const averageTimePerPage = totalPages > 0 ? (pageDuration / totalPages).toFixed(4) : 0;
 
     const totalEndTime = Date.now();
@@ -311,15 +312,17 @@ async function processContent() {
     console.log(`Total Entries Processed: ${markdownFiles.length}`);
     console.log(`Total Posts Created: ${posts.length}`);
     console.log(`Total Pages Created: ${totalPages}`);
-    
+    console.log(`Time taken to process CSV data: ${csvDuration} seconds`);
+    console.log(`Time taken to process JSON data: ${jsonDuration} seconds`);
+
     if (postCount > 0) {
         console.log(`Average Time per Post: ${(totalPostDuration / postCount).toFixed(4)} seconds`);
     } else {
         console.log(`No posts were created.`);
     }
-    
-        console.log(`Average Time per Page: ${averageTimePerPage} seconds`);
-    
+
+    console.log(`Average Time per Page: ${averageTimePerPage} seconds`);
+
     if (skippedEntries.length > 0) {
         console.log(`Skipped Entries:`);
         skippedEntries.forEach(entry => {
@@ -328,9 +331,9 @@ async function processContent() {
     } else {
         console.log(`No entries were skipped.`);
     }
+
+    console.log(`Total Build Time: ${totalElapsed} seconds`);
 }
-
-
 
 // Main SSG execution
 async function runSSG() {
