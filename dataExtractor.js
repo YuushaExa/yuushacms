@@ -3,53 +3,58 @@ const path = require('path');
 const matter = require('gray-matter');
 const csv = require('csv-parser');
 const axios = require('axios');
+const { Readable } = require('stream');
 
 const dataDir = 'prebuild/data';
 const contentDir = 'content';
 
 async function extractDataFromSources() {
-    try {
-        await fs.ensureDir(contentDir);
-        const dataFiles = await fs.readdir(dataDir);
+  try {
+    await fs.ensureDir(contentDir);
+    const dataFiles = await fs.readdir(dataDir);
 
-        for (const dataFile of dataFiles) {
-            if (dataFile.endsWith('.html')) {
-                const dataFilePath = path.join(dataDir, dataFile);
-                const dataFileContent = await fs.readFile(dataFilePath, 'utf-8');
-                const { data: frontMatter, content: htmlContent } = matter(dataFileContent);
+    for (const dataFile of dataFiles) {
+      if (dataFile.endsWith('.html')) {
+        const dataFilePath = path.join(dataDir, dataFile);
+        const dataFileContent = await fs.readFile(dataFilePath, 'utf-8');
+        const { data: frontMatter, content: htmlContent } = matter(dataFileContent);
 
-                const dataSource = frontMatter.data;
-                const mappings = { ...frontMatter };
-                delete mappings.data;
+        const dataSource = frontMatter.data;
+        const mappings = { ...frontMatter };
+        delete mappings.data;
 
-                if (dataSource) {
-                    const dataSourcePath = path.join(dataDir, dataSource);
-                    const dataSourceType = path.extname(dataSource).toLowerCase();
+        if (dataSource) {
+          let rawData;
+          if (dataSource.startsWith('http://') || dataSource.startsWith('https://')) {
+            // Handle remote URL
+            rawData = await fetchDataFromUrl(dataSource);
+          } else {
+            // Handle local file
+            const dataSourcePath = path.join(dataDir, dataSource);
+            const dataSourceType = path.extname(dataSource).toLowerCase();
 
-                    let rawData;
-                    if (dataSourceType === '.json') {
-                        rawData = await fs.readJson(dataSourcePath);
-                    } else if (dataSourceType === '.csv') {
-                        rawData = await readCsv(dataSourcePath);
-                    } else {
-                        console.warn(`Unsupported data source type: ${dataSourceType}`);
-                        continue;
-                    }
-                    
-                    // Process HTML content to extract key-value pairs
-                    const extractedData = extractDataFromHtmlContent(htmlContent);
-                    
-                    // Merge extracted data with mappings
-                    Object.assign(mappings, extractedData);
-
-                    await generateMarkdownFromData(rawData, mappings, dataSource);
-                }
+            if (dataSourceType === '.json') {
+              rawData = await fs.readJson(dataSourcePath);
+            } else if (dataSourceType === '.csv') {
+              rawData = await readCsv(dataSourcePath);
+            } else {
+              console.warn(`Unsupported data source type: ${dataSourceType}`);
+              continue;
             }
+          }
+
+          const extractedData = extractDataFromHtmlContent(htmlContent);
+          Object.assign(mappings, extractedData);
+
+          await generateMarkdownFromData(rawData, mappings, dataSource);
         }
-    } catch (error) {
-        console.error(`Error during data extraction: ${error.message}`);
+      }
     }
+  } catch (error) {
+    console.error(`Error during data extraction: ${error.message}`);
+  }
 }
+
 // Function to extract key-value pairs from HTML content
 function extractDataFromHtmlContent(htmlContent) {
     const data = {};
@@ -64,6 +69,46 @@ function extractDataFromHtmlContent(htmlContent) {
     }
 
     return data;
+}
+
+async function fetchDataFromUrl(url) {
+  try {
+    const response = await axios.get(url, { responseType: 'arraybuffer' }); // Use arraybuffer for CSV
+    const data = response.data;
+    const dataSourceType = getDataSourceTypeFromUrl(url);
+
+    if (dataSourceType === '.json') {
+      return JSON.parse(data.toString('utf8'));
+    } else if (dataSourceType === '.csv') {
+      return await readCsvFromBuffer(data);
+    } else {
+      throw new Error(`Unsupported data source type: ${dataSourceType}`);
+    }
+  } catch (error) {
+    console.error(`Error fetching data from URL ${url}: ${error.message}`);
+    throw error; // Re-throw the error to be handled by the caller
+  }
+}
+
+function getDataSourceTypeFromUrl(url) {
+  const parsedUrl = new URL(url);
+  const pathname = parsedUrl.pathname;
+  return path.extname(pathname).toLowerCase();
+}
+
+async function readCsvFromBuffer(buffer) {
+    return new Promise((resolve, reject) => {
+        const results = [];
+        const stream = new Readable();
+        stream.push(buffer);
+        stream.push(null); // Signal end of stream
+
+        stream
+            .pipe(csv())
+            .on('data', (data) => results.push(data))
+            .on('end', () => resolve(results))
+            .on('error', (error) => reject(error));
+    });
 }
 
 async function readCsv(filePath) {
