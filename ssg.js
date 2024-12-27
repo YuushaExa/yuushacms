@@ -396,7 +396,11 @@ async function processContent() {
     console.log(`Total Build Time: ${totalElapsed} seconds`);
 }
 
-
+function sanitizeTagValue(tagValue) {
+    const maxLength = 50; // Or any other reasonable length
+    const truncated = tagValue.length > maxLength ? tagValue.substring(0, maxLength) + "..." : tagValue;
+    return encodeURIComponent(truncated.toLowerCase().replace(/\s+/g, '-'));
+}
 
 // Function to generate tag pages (no changes needed here)
 async function generateTagPages(tagData) {
