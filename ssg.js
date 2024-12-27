@@ -396,10 +396,7 @@ async function processContent() {
     console.log(`Total Build Time: ${totalElapsed} seconds`);
 }
 
-// Helper function to sanitize tag values (used in generateTagPages and tag collection)
-function sanitizeTagValue(tagValue) {
-    return encodeURIComponent(tagValue.toLowerCase().replace(/\s+/g, '-'));
-}
+
 
 // Function to generate tag pages (no changes needed here)
 async function generateTagPages(tagData) {
@@ -410,10 +407,13 @@ async function generateTagPages(tagData) {
             const posts = tagData[tagType][tagValue];
             const totalPages = Math.ceil(posts.length / config.pagination.postsPerPage);
 
+            // No need to sanitize the tagValue for directory names here
             for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
                 const pagePosts = posts.slice((pageNumber - 1) * config.pagination.postsPerPage, pageNumber * config.pagination.postsPerPage);
-                const prevPage = pageNumber > 1 ? `/tags/${tagType}/${tagValue}/page-${pageNumber - 1}.html` : null;
-                const nextPage = pageNumber < totalPages ? `/tags/${tagType}/${tagValue}/page-${pageNumber + 1}.html` : null;
+
+                // Construct URLs without sanitization
+                const prevPage = pageNumber > 1 ? `/yuushacms/tags/${tagType}/${tagValue}/page-${pageNumber - 1}.html` : null;
+                const nextPage = pageNumber < totalPages ? `/yuushacms/tags/${tagType}/${tagValue}/page-${pageNumber + 1}.html` : null;
 
                 const renderedContent = await renderTemplate(tagTemplate, {
                     tagType: tagType,
@@ -423,8 +423,10 @@ async function generateTagPages(tagData) {
                     nextPage: nextPage
                 });
 
+                // Construct directory path without sanitization
                 const tagPageDir = path.join(outputDir, 'tags', tagType, tagValue);
                 await fs.ensureDir(tagPageDir);
+
                 const outputFilePath = path.join(tagPageDir, pageNumber === 1 ? 'index.html' : `page-${pageNumber}.html`);
                 await fs.writeFile(outputFilePath, await renderWithBase(renderedContent, { title: `Tag: ${tagValue}` }));
             }
