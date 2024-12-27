@@ -398,9 +398,10 @@ async function processContent() {
 
 // Helper function to sanitize tag values (used in generateTagPages and tag collection)
 function sanitizeTagValue(tagValue) {
-    return encodeURIComponent(tagValue.toLowerCase().replace(/\s+/g, '-'));
+    const maxLength = 50; // Or any other reasonable length
+    const truncated = tagValue.length > maxLength ? tagValue.substring(0, maxLength) + "..." : tagValue;
+    return encodeURIComponent(truncated.toLowerCase().replace(/\s+/g, '-'));
 }
-
 // Function to generate tag pages (no changes needed here)
 async function generateTagPages(tagData) {
     const tagTemplate = layoutCache['tag'] || await readFile(layoutsDir, 'tag');
