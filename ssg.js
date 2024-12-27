@@ -416,8 +416,8 @@ async function generateTagPages(tagData) {
             const sanitizedTagValue = sanitizeTagValue(tagValue);
             for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
                 const pagePosts = posts.slice((pageNumber - 1) * config.pagination.postsPerPage, pageNumber * config.pagination.postsPerPage);
-                const prevPage = pageNumber > 1 ? `/tags/${tagType}/${sanitizedTagValue}/page-${pageNumber - 1}.html` : null;
-                const nextPage = pageNumber < totalPages ? `/tags/${tagType}/${sanitizedTagValue}/page-${pageNumber + 1}.html` : null;
+                const prevPage = pageNumber > 1 ? `/yuushacms/tags/${tagType}/${sanitizedTagValue}/page-${pageNumber - 1}.html` : null;
+                const nextPage = pageNumber < totalPages ? `/yuushacms/tags/${tagType}/${sanitizedTagValue}/page-${pageNumber + 1}.html` : null;
 
                 const renderedContent = await renderTemplate(tagTemplate, {
                     tagType: tagType,
