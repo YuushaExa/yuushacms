@@ -398,9 +398,7 @@ async function processContent() {
 
 // Helper function to sanitize tag values (used in generateTagPages and tag collection)
 function sanitizeTagValue(tagValue) {
-    const maxLength = 50; // Or any other reasonable length
-    const truncated = tagValue.length > maxLength ? tagValue.substring(0, maxLength) + "..." : tagValue;
-    return encodeURIComponent(truncated.toLowerCase().replace(/\s+/g, '-'));
+    return encodeURIComponent(tagValue.toLowerCase().replace(/\s+/g, '-'));
 }
 
 // Function to generate tag pages (no changes needed here)
@@ -412,24 +410,20 @@ async function generateTagPages(tagData) {
             const posts = tagData[tagType][tagValue];
             const totalPages = Math.ceil(posts.length / config.pagination.postsPerPage);
 
-            // Use the sanitized tag value for directory and file names
-            const sanitizedTagValue = sanitizeTagValue(tagValue);
-
             for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
                 const pagePosts = posts.slice((pageNumber - 1) * config.pagination.postsPerPage, pageNumber * config.pagination.postsPerPage);
-                const prevPage = pageNumber > 1 ? `/tags/${tagType}/${sanitizedTagValue}/page-${pageNumber - 1}.html` : null;
-                const nextPage = pageNumber < totalPages ? `/tags/${tagType}/${sanitizedTagValue}/page-${pageNumber + 1}.html` : null;
+                const prevPage = pageNumber > 1 ? `/tags/${tagType}/${tagValue}/page-${pageNumber - 1}.html` : null;
+                const nextPage = pageNumber < totalPages ? `/tags/${tagType}/${tagValue}/page-${pageNumber + 1}.html` : null;
 
                 const renderedContent = await renderTemplate(tagTemplate, {
                     tagType: tagType,
-                    tagValue: tagValue, // Keep the original tagValue for display in the template
+                    tagValue: tagValue,
                     posts: pagePosts,
                     prevPage: prevPage,
                     nextPage: nextPage
                 });
 
-                // Use sanitizedTagValue for the directory
-                const tagPageDir = path.join(outputDir, 'tags', tagType, sanitizedTagValue);
+                const tagPageDir = path.join(outputDir, 'tags', tagType, tagValue);
                 await fs.ensureDir(tagPageDir);
                 const outputFilePath = path.join(tagPageDir, pageNumber === 1 ? 'index.html' : `page-${pageNumber}.html`);
                 await fs.writeFile(outputFilePath, await renderWithBase(renderedContent, { title: `Tag: ${tagValue}` }));
