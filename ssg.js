@@ -118,7 +118,7 @@ async function preloadTemplates() {
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
-
+context.sanitizeTagValue = sanitizeTagValue;
     context.currentYear = new Date().getFullYear();
 
     // Render partials
