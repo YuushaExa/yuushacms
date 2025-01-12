@@ -416,21 +416,28 @@ async function generateTagPages(tagData) {
             const sanitizedTagValue = sanitizeTagValue(tagValue);
             for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
                 const pagePosts = posts.slice((pageNumber - 1) * config.pagination.postsPerPage, pageNumber * config.pagination.postsPerPage);
+                
+                // Correctly generate prevPage and nextPage URLs
                 const prevPage = pageNumber > 1 ? `/tags/${tagType}/${sanitizedTagValue}/page-${pageNumber - 1}.html` : null;
                 const nextPage = pageNumber < totalPages ? `/tags/${tagType}/${sanitizedTagValue}/page-${pageNumber + 1}.html` : null;
+
+                // Ensure the first page is named 'index.html'
+                const pageFileName = pageNumber === 1 ? 'index.html' : `page-${pageNumber}.html`;
 
                 const renderedContent = await renderTemplate(tagTemplate, {
                     tagType: tagType,
                     tagValue: tagValue, // Keep the original tagValue for display in the template
                     posts: pagePosts,
-                    prevPage: prevPage,
-                    nextPage: nextPage
+                    prevPage: prevPage, // Pass the corrected URLs
+                    nextPage: nextPage  // Pass the corrected URLs
                 });
 
                 // Use sanitizedTagValue for the directory
                 const tagPageDir = path.join(outputDir, 'tags', tagType, sanitizedTagValue);
                 await fs.ensureDir(tagPageDir);
-                const outputFilePath = path.join(tagPageDir, pageNumber === 1 ? 'index.html' : `page-${pageNumber}.html`);
+
+                // Construct the output file path using pageFileName
+                const outputFilePath = path.join(tagPageDir, pageFileName);
                 await fs.writeFile(outputFilePath, await renderWithBase(renderedContent, { title: `Tag: ${tagValue}` }));
             }
         }
