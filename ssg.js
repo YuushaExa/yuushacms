@@ -171,7 +171,7 @@ async function renderWithBase(templateContent, context = {}) {
 }
 
 async function generateSingleHTML(title, content, fileName, context = {}) {
-    const finalTitle = title || fileName.replace('.md', '').replace(/-/g, ' ');
+    const finalTitle = (title || fileName.replace('.md', '')).replace(/-/g, ' ').toLowerCase();
     const singleTemplate = layoutCache['single'] || await readFile(layoutsDir, 'single');
 
     // Merge the existing context with the new data
@@ -314,7 +314,7 @@ const outputFilePath = path.join(outputDir, `${slug}.html`);
 
         await fs.writeFile(outputFilePath, html);
 
-        const postTitle = data.title || slug.replace(/-/g, ' ');
+        const postTitle = (data.title || slug.replace(/-/g, ' ')).toLowerCase();
         posts.push({ title: postTitle, url: `${slug}.html` });
 
 // Collect tag data using extracted tag types
@@ -322,7 +322,7 @@ tagTypes.forEach(tagType => {
     if (data[tagType]) {
         const tagValues = Array.isArray(data[tagType]) ? data[tagType] : [data[tagType]];
         tagValues.forEach(tagValue => {
-            const sanitizedTagValue = sanitizeTagValue(tagValue);
+                    const sanitizedTagValue = sanitizeTagValue(tagValue).toLowerCase();
             if (!tagData[tagType]) {
                 tagData[tagType] = {};
             }
