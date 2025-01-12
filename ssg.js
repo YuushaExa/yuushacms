@@ -318,21 +318,23 @@ async function processContent() {
         posts.push({ title: postTitle, url: `${slug}.html` });
 
         // Collect tag data using extracted tag types (INSIDE THE LOOP)
-        tagTypes.forEach(tagType => {
-            if (data[tagType]) {
-                const tagValues = Array.isArray(data[tagType]) ? data[tagType] : [data[tagType]];
-                tagValues.forEach(tagValue => {
-                    const sanitizedTagValue = sanitizeTagValue(tagValue);
-                    if (!tagData[tagType]) {
-                        tagData[tagType] = {};
-                    }
-                    if (!tagData[tagType][sanitizedTagValue]) {
-                        tagData[tagType][sanitizedTagValue] = [];
-                    }
-                    tagData[tagType][sanitizedTagValue].push({ title: postTitle, url: `${slug}.html` });
-                });
+// Collect tag data using extracted tag types
+tagTypes.forEach(tagType => {
+    if (data[tagType]) {
+        const tagValues = Array.isArray(data[tagType]) ? data[tagType] : [data[tagType]];
+        tagValues.forEach(tagValue => {
+            const sanitizedTagValue = sanitizeTagValue(tagValue);
+            if (!tagData[tagType]) {
+                tagData[tagType] = {};
             }
+            if (!tagData[tagType][sanitizedTagValue]) {
+                tagData[tagType][sanitizedTagValue] = [];
+            }
+            // Correctly set the URL to the direct post URL
+            tagData[tagType][sanitizedTagValue].push({ title: postTitle, url: `${slug}.html` });
         });
+    }
+});
 
         const postEndTime = Date.now();
         const postDuration = (postEndTime - postStartTime) / 1000;
