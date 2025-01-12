@@ -307,8 +307,8 @@ async function processContent() {
         const context = { ...data, content: htmlContent };
         const html = await generateSingleHTML(data.title, htmlContent, file, context);
 
-        const slug = file.replace('.md', '');
-        const outputFilePath = path.join(outputDir, `${slug}.html`);
+        const slug = file.replace('.md', '').toLowerCase(); // Lowercase the slug
+const outputFilePath = path.join(outputDir, `${slug}.html`);
         const outputDirPath = path.dirname(outputFilePath);
         await fs.ensureDir(outputDirPath);
 
@@ -433,12 +433,12 @@ async function generateTagPages(tagData) {
                     nextPage: nextPage  // Pass the corrected URLs
                 });
 
-                // Use sanitizedTagValue for the directory
-                const tagPageDir = path.join(outputDir, 'tags', tagType, sanitizedTagValue);
+                // Use sanitizedTagValue for the directory                
+             const tagPageDir = path.join(outputDir, 'tags', sanitizeTagValue(tagType), sanitizeTagValue(tagValue).toLowerCase()); // Lowercase tag values
                 await fs.ensureDir(tagPageDir);
 
                 // Construct the output file path using pageFileName
-                const outputFilePath = path.join(tagPageDir, pageFileName);
+const outputFilePath = path.join(tagPageDir, pageFileName);
                 await fs.writeFile(outputFilePath, await renderWithBase(renderedContent, { title: `Tag: ${tagValue}` }));
             }
         }
