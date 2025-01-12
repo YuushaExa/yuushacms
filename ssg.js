@@ -317,7 +317,6 @@ async function processContent() {
         const postTitle = data.title || slug.replace(/-/g, ' ');
         posts.push({ title: postTitle, url: `${slug}.html` });
 
-        // Collect tag data using extracted tag types (INSIDE THE LOOP)
 // Collect tag data using extracted tag types
 tagTypes.forEach(tagType => {
     if (data[tagType]) {
@@ -331,7 +330,7 @@ tagTypes.forEach(tagType => {
                 tagData[tagType][sanitizedTagValue] = [];
             }
             // Correctly set the URL to the direct post URL
-            tagData[tagType][sanitizedTagValue].push({ title: postTitle, url: `${slug}.html` });
+            tagData[tagType][sanitizedTagValue].push({ title: postTitle, url: `${slug}.html` }); // Correct URL here
         });
     }
 });
