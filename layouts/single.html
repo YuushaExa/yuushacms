@@ -13,7 +13,11 @@
         <p>Director: <a href="/tags/director/{{ sanitize director }}">{{ director }}</a></p>
     {{/if}}
     {{#if cast}}
-        <p>Cast: <a href="/tags/cast/{{ sanitize cast }}">{{ cast }}</a></p>
+        <p>Cast:
+            {{#each cast}}
+                <a href="/tags/cast/{{sanitize this}}">{{this}}</a>{{#unless @last}}, {{/unless}}
+            {{/each}}
+        </p>
     {{/if}}
     {{#if genre}}
         <p>Genre: <a href="/tags/genre/{{ sanitize genre }}">{{ genre }}</a></p>
