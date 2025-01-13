@@ -329,9 +329,11 @@ tagTypes.forEach(tagType => {
     if (!data[tagType]) return; // Skip if tagType doesn't exist in data
 
     const tagValues = Array.isArray(data[tagType]) ? data[tagType] : [data[tagType]];
+    const sanitizedTagValues = []; // Array to store sanitized values
 
     tagValues.forEach(tagValue => {
         const sanitizedTagValue = sanitizeTagValue(tagValue);
+        sanitizedTagValues.push(sanitizedTagValue); // Add to sanitized array
 
         // Ensure tagType and sanitizedTagValue exist in tagData
         if (!tagData[tagType]) tagData[tagType] = {};
@@ -344,8 +346,8 @@ tagTypes.forEach(tagType => {
         });
     });
 
-    // Sanitize and update the original data object (outside the inner loop)
-    data[tagType] = tagValues.map(sanitizeTagValue);
+    // Update the original data object with the sanitized array
+    data[tagType] = sanitizedTagValues; // Assign the array of sanitized values
 });
      
         const postEndTime = Date.now();
