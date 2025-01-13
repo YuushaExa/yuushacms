@@ -135,29 +135,44 @@ async function renderTemplate(template, context = {}) {
     }
 
     // Render loops
- const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
-    for (const match of loopMatches) {
-        const [fullMatch, collection, innerTemplate] = match;
-        const items = context[collection];
-        if (Array.isArray(items)) {
-            const renderedItems = items.map((item, index) => {
-                // Make @last available to the inner template
-                const isLast = index === items.length - 1;
-                const loopContext = { ...context, this: item, '@last': isLast };
-                return renderTemplate(innerTemplate, loopContext);
-            });
-            template = template.replace(fullMatch, (await Promise.all(renderedItems)).join(''));
-        } else {
-            template = template.replace(fullMatch, '');
-        }
-    }
+const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
+  for (const match of loopMatches) {
+    const [fullMatch, collection, innerTemplate] = match;
+    const items = context[collection];
+    if (Array.isArray(items)) {
+      const renderedItems = items.map((item, index) => {
+        const isLast = index === items.length - 1;
+        const loopContext = { ...context, this: item, '@last': isLast };
+        // Recursively render the inner template with the loop context
+        return renderTemplate(innerTemplate, loopContext);
+      });
 
-    // Render conditionals
-    const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
-    for (const match of conditionalMatches) {
-        const [fullMatch, condition, innerTemplate] = match;
-        template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
+      // Resolve all promises from recursive calls
+      const resolvedItems = await Promise.all(renderedItems);
+
+      // Replace the entire loop block with the rendered items
+      template = template.replace(fullMatch, resolvedItems.join(''));
+    } else {
+      template = template.replace(fullMatch, '');
     }
+  }
+
+  // Render conditionals
+  const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
+  for (const match of conditionalMatches) {
+    const [fullMatch, condition, innerTemplate] = match;
+    template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
+  }
+
+  // Render unlesses - this part handles the {{#unless}} tag
+  const unlessMatches = [...template.matchAll(/{{#unless\s+([\w]+)}}([\s\S]*?){{\/unless}}/g)];
+  for (const match of unlessMatches) {
+    const [fullMatch, condition, innerTemplate] = match;
+    // Replace the unless block based on the opposite of the condition
+    template = template.replace(fullMatch, !context[condition] ? innerTemplate : '');
+  }
+
+
 
     // Render variables
   const variableMatches = [...template.matchAll(/{{\s*([\w]+(?:\s+[\w]+)?)\s*}}/g)];
