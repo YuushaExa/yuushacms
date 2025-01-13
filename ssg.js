@@ -135,15 +135,18 @@ async function renderTemplate(template, context = {}) {
     }
 
     // Render loops
-    const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
+ const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
     for (const match of loopMatches) {
         const [fullMatch, collection, innerTemplate] = match;
         const items = context[collection];
         if (Array.isArray(items)) {
-            const renderedItems = await Promise.all(
-                items.map(item => renderTemplate(innerTemplate, { ...context, ...item }))
-            );
-            template = template.replace(fullMatch, renderedItems.join(''));
+            const renderedItems = items.map((item, index) => {
+                // Make @last available to the inner template
+                const isLast = index === items.length - 1;
+                const loopContext = { ...context, this: item, '@last': isLast };
+                return renderTemplate(innerTemplate, loopContext);
+            });
+            template = template.replace(fullMatch, (await Promise.all(renderedItems)).join(''));
         } else {
             template = template.replace(fullMatch, '');
         }
@@ -326,6 +329,11 @@ async function processContent() {
             continue;
         }
 
+ if (data.cast && typeof data.cast === 'string') {
+        data.cast = data.cast.split(',').map(name => name.trim());
+    }
+
+     
         const context = { ...data, content: htmlContent };
         const html = await generateSingleHTML(data.title, htmlContent, file, context);
 
