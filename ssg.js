@@ -120,6 +120,7 @@ async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
     context.currentYear = new Date().getFullYear();
+    context.sanitize = sanitizeTagValue;
 
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
@@ -156,11 +157,25 @@ async function renderTemplate(template, context = {}) {
     }
 
     // Render variables
-    const variableMatches = [...template.matchAll(/{{\s*([\w]+)\s*}}/g)];
-    for (const match of variableMatches) {
-        const [fullMatch, key] = match;
-        template = template.replace(fullMatch, context[key] || '');
+  const variableMatches = [...template.matchAll(/{{\s*([\w]+(?:\s+[\w]+)?)\s*}}/g)];
+  for (const match of variableMatches) {
+    const [fullMatch, key] = match;
+    const parts = key.split(/\s+/);
+
+    if (parts.length === 2 && parts[0] === 'sanitize') {
+      const tagValue = context[parts[1]];
+      if (tagValue) {
+        const sanitizedValue = Array.isArray(tagValue)
+          ? tagValue.map(sanitizeTagValue)
+          : sanitizeTagValue(tagValue);
+        template = template.replace(fullMatch, sanitizedValue.toString());
+      } else {
+        template = template.replace(fullMatch, '');
+      }
+    } else if (parts.length === 1) {
+      template = template.replace(fullMatch, context[key] || '');
     }
+  }
 
     return template;
 }
