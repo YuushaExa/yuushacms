@@ -251,6 +251,13 @@ async function extractTagTypesFromLayouts() {
   return Array.from(tagTypes); // Return tag types as an array
 }
 
+// Helper function to sanitize tag values (used in generateTagPages and tag collection)
+function sanitizeTagValue(tagValue) {
+    const maxLength = 50; // Or any other reasonable length
+    const truncated = tagValue.length > maxLength ? tagValue.substring(0, maxLength) + "..." : tagValue;
+    return encodeURIComponent(truncated.toLowerCase().replace(/\s+/g, '-'));
+}
+
 
 // Main content processing function
 async function processContent() {
@@ -318,29 +325,28 @@ const outputFilePath = path.join(outputDir, `${slug}.html`);
         posts.push({ title: postTitle, url: `${slug}.html` });
 
 // Collect tag data using extracted tag types
-  tagTypes.forEach(tagType => {
-            if (data[tagType]) {
-                const tagValues = Array.isArray(data[tagType]) ? data[tagType] : [data[tagType]];
-                tagValues.forEach(tagValue => {
-                    // Apply sanitizeTagValue here to ensure lowercase and URL-safe tag
-                    const sanitizedTagValue = sanitizeTagValue(tagValue);
-                    if (!tagData[tagType]) {
-                        tagData[tagType] = {};
-                    }
-                    if (!tagData[tagType][sanitizedTagValue]) {
-                        tagData[tagType][sanitizedTagValue] = [];
-                    }
-                    // Store the sanitized tag value for use in the template
-                    data[tagType] = sanitizedTagValue; // Update the tag value in data
+tagTypes.forEach(tagType => {
+    if (!data[tagType]) return; // Skip if tagType doesn't exist in data
 
-                    // Correctly set the URL to the direct post URL (already lowercase due to slug changes)
-                    tagData[tagType][sanitizedTagValue].push({
-                        title: postTitle,
-                        url: `${slug}.html`
-                    });
-                });
-            }
+    const tagValues = Array.isArray(data[tagType]) ? data[tagType] : [data[tagType]];
+
+    tagValues.forEach(tagValue => {
+        const sanitizedTagValue = sanitizeTagValue(tagValue);
+
+        // Ensure tagType and sanitizedTagValue exist in tagData
+        if (!tagData[tagType]) tagData[tagType] = {};
+        if (!tagData[tagType][sanitizedTagValue]) tagData[tagType][sanitizedTagValue] = [];
+
+        // Add post info to tagData
+        tagData[tagType][sanitizedTagValue].push({
+            title: postTitle,
+            url: `${slug}.html`
         });
+    });
+
+    // Sanitize and update the original data object (outside the inner loop)
+    data[tagType] = tagValues.map(sanitizeTagValue);
+});
      
         const postEndTime = Date.now();
         const postDuration = (postEndTime - postStartTime) / 1000;
@@ -402,13 +408,6 @@ const outputFilePath = path.join(outputDir, `${slug}.html`);
     }
 
     console.log(`Total Build Time: ${totalElapsed} seconds`);
-}
-
-// Helper function to sanitize tag values (used in generateTagPages and tag collection)
-function sanitizeTagValue(tagValue) {
-    const maxLength = 50; // Or any other reasonable length
-    const truncated = tagValue.length > maxLength ? tagValue.substring(0, maxLength) + "..." : tagValue;
-    return encodeURIComponent(truncated.toLowerCase().replace(/\s+/g, '-'));
 }
 
 // Function to generate tag pages (no changes needed here)
