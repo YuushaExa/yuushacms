@@ -114,13 +114,21 @@ async function preloadTemplates() {
     // Wait for all layout and partial promises to resolve
     await Promise.all([...layoutPromises, ...partialPromises]);
 }
-
+function lowercaseHelper(str) {
+    if (typeof str === 'string') {
+        return str.toLowerCase();
+    }
+    return ''; // Return empty string if not a string
+}
 // Function to render a template with context and partials
 async function renderTemplate(template, context = {}) {
     if (!template) return '';
 
     context.currentYear = new Date().getFullYear();
-
+   const helpers = {
+        lowercase: lowercaseHelper,
+        // ... any other custom helpers you might have
+    };
     // Render partials
     const partialMatches = [...template.matchAll(/{{>\s*([\w]+)\s*}}/g)];
     for (const match of partialMatches) {
@@ -322,7 +330,7 @@ tagTypes.forEach(tagType => {
     if (data[tagType]) {
         const tagValues = Array.isArray(data[tagType]) ? data[tagType] : [data[tagType]];
         tagValues.forEach(tagValue => {
-                    const sanitizedTagValue = sanitizeTagValue(tagValue).toLowerCase();
+            const sanitizedTagValue = sanitizeTagValue(tagValue);
             if (!tagData[tagType]) {
                 tagData[tagType] = {};
             }
