@@ -135,65 +135,61 @@ async function renderTemplate(template, context = {}) {
     }
 
     // Render loops
-const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
-  for (const match of loopMatches) {
-    const [fullMatch, collection, innerTemplate] = match;
-    const items = context[collection];
-    if (Array.isArray(items)) {
-      const renderedItems = items.map((item, index) => {
-        const isLast = index === items.length - 1;
-        const loopContext = { ...context, this: item, '@last': isLast };
-        // Recursively render the inner template with the loop context
-        return renderTemplate(innerTemplate, loopContext);
-      });
-
-      // Resolve all promises from recursive calls
-      const resolvedItems = await Promise.all(renderedItems);
-
-      // Replace the entire loop block with the rendered items
-      template = template.replace(fullMatch, resolvedItems.join(''));
-    } else {
-      template = template.replace(fullMatch, '');
+ const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
+    for (const match of loopMatches) {
+        const [fullMatch, collection, innerTemplate] = match;
+        const items = context[collection];
+        if (Array.isArray(items)) {
+            const renderedItems = await Promise.all(
+                items.map(async (item, index) => {
+                    const isLast = index === items.length - 1;
+                    const loopContext = { ...context, this: item, '@last': isLast };
+                    // Render inner template recursively
+                    return await renderTemplate(innerTemplate, loopContext);
+                })
+            );
+            // Replace the entire loop block with the rendered items
+            template = template.replace(fullMatch, renderedItems.join(''));
+        } else {
+            template = template.replace(fullMatch, '');
+        }
     }
-  }
 
-  // Render conditionals
-  const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
-  for (const match of conditionalMatches) {
-    const [fullMatch, condition, innerTemplate] = match;
-    template = template.replace(fullMatch, context[condition] ? innerTemplate : '');
-  }
+    const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
+    for (const match of conditionalMatches) {
+        const [fullMatch, condition, innerTemplate] = match;
+        template = template.replace(fullMatch, context[condition] ? await renderTemplate(innerTemplate, context) : '');
+    }
 
-  // Render unlesses - this part handles the {{#unless}} tag
-  const unlessMatches = [...template.matchAll(/{{#unless\s+([\w]+)}}([\s\S]*?){{\/unless}}/g)];
-  for (const match of unlessMatches) {
-    const [fullMatch, condition, innerTemplate] = match;
-    // Replace the unless block based on the opposite of the condition
-    template = template.replace(fullMatch, !context[condition] ? innerTemplate : '');
-  }
+    // Render unlesses
+    const unlessMatches = [...template.matchAll(/{{#unless\s+([\w]+)}}([\s\S]*?){{\/unless}}/g)];
+    for (const match of unlessMatches) {
+        const [fullMatch, condition, innerTemplate] = match;
+        template = template.replace(fullMatch, !context[condition] ? await renderTemplate(innerTemplate, context) : '');
+    }
 
 
 
     // Render variables
-  const variableMatches = [...template.matchAll(/{{\s*([\w]+(?:\s+[\w]+)?)\s*}}/g)];
-  for (const match of variableMatches) {
-    const [fullMatch, key] = match;
-    const parts = key.split(/\s+/);
-
-    if (parts.length === 2 && parts[0] === 'sanitize') {
-      const tagValue = context[parts[1]];
-      if (tagValue) {
-        const sanitizedValue = Array.isArray(tagValue)
-          ? tagValue.map(sanitizeTagValue)
-          : sanitizeTagValue(tagValue);
-        template = template.replace(fullMatch, sanitizedValue.toString());
-      } else {
-        template = template.replace(fullMatch, '');
+    const variableMatches = [...template.matchAll(/{{\s*([\w]+(?:\s+[\w]+)?)\s*}}/g)];
+    for (const match of variableMatches) {
+      const [fullMatch, key] = match;
+      const parts = key.split(/\s+/);
+  
+      if (parts.length === 2 && parts[0] === 'sanitize') {
+        const tagValue = context[parts[1]];
+        if (tagValue) {
+          const sanitizedValue = Array.isArray(tagValue)
+            ? tagValue.map(sanitizeTagValue)
+            : sanitizeTagValue(tagValue);
+          template = template.replace(fullMatch, sanitizedValue.toString());
+        } else {
+          template = template.replace(fullMatch, '');
+        }
+      } else if (parts.length === 1) {
+        template = template.replace(fullMatch, context[key] || '');
       }
-    } else if (parts.length === 1) {
-      template = template.replace(fullMatch, context[key] || '');
     }
-  }
 
     return template;
 }
