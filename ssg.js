@@ -135,25 +135,30 @@ async function renderTemplate(template, context = {}) {
     }
 
     // Render loops
- const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
-    for (const match of loopMatches) {
-        const [fullMatch, collection, innerTemplate] = match;
-        const items = context[collection];
-        if (Array.isArray(items)) {
-            const renderedItems = await Promise.all(
-                items.map(async (item, index) => {
-                    const isLast = index === items.length - 1;
-                    const loopContext = { ...context, this: item, '@last': isLast };
-                    // Render inner template recursively
-                    return await renderTemplate(innerTemplate, loopContext);
-                })
-            );
-            // Replace the entire loop block with the rendered items
-            template = template.replace(fullMatch, renderedItems.join(''));
-        } else {
-            template = template.replace(fullMatch, '');
-        }
+const loopMatches = [...template.matchAll(/{{#each\s+([\w]+)}}([\s\S]*?){{\/each}}/g)];
+  for (const match of loopMatches) {
+    const [fullMatch, collection, innerTemplate] = match;
+    const items = context[collection];
+    if (Array.isArray(items)) {
+      const renderedItems = await Promise.all(
+        items.map(async (item, index) => {
+          const isLast = index === items.length - 1;
+          const loopContext = {
+            ...context,
+            this: item,
+            comma: isLast ? '' : ', ', // Add comma conditionally
+          };
+          // Render inner template recursively
+          return await renderTemplate(innerTemplate, loopContext);
+        })
+      );
+      // Replace the entire loop block with the rendered items
+      template = template.replace(fullMatch, renderedItems.join(''));
+    } else {
+      template = template.replace(fullMatch, '');
     }
+  }
+
 
     const conditionalMatches = [...template.matchAll(/{{#if\s+([\w]+)}}([\s\S]*?){{\/if}}/g)];
     for (const match of conditionalMatches) {
